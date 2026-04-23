@@ -78,6 +78,7 @@ const DB = [DB_JUNIOR, DB_ACB, DB_NBA];
 // 3. SISTEMA DE AUTOGUARDADO (LOCALSTORAGE)
 // =====================================================================
 
+// Se ejecuta al cargar la página para ver si existe partida guardada
 window.onload = function() {
     if(localStorage.getItem('basketSaveData')) {
         document.getElementById('btn-continuar').style.display = 'block';
@@ -94,11 +95,6 @@ function cargarPartida() {
     if(data) {
         p = data.jugador;
         leagueTable = data.liga;
-        
-        // CORRECCIÓN SISTEMA DE GUARDADO: 
-        // Reconectamos el puntero de tu equipo para que las victorias se guarden en la tabla correctamente
-        p.teamData = leagueTable.find(t => t.isPlayer === true);
-        
         document.getElementById('setup-screen').style.display = 'none';
         document.getElementById('main-game-ui').style.display = 'flex';
         evalRole(); updateUI(); renderMenu();
@@ -129,7 +125,7 @@ function iniciarCarrera() {
     
     prepararLiga(); evalRole(); updateUI(); renderMenu();
     escribirDialogo(`AGENTE:<br><br>Todo firmado. Jugarás de ${p.pos} con el #${p.dorsal} en ${p.team}. ¡A por la liga!`);
-    guardarPartida();
+    guardarPartida(); // Guardamos justo al crear el jugador
 }
 
 function prepararLiga() {
@@ -172,7 +168,7 @@ function renderMenu() {
         <button onclick="abrirEquipos()" class="btn-main" style="border-color: #555; color: #ccc;">⛹️ VER EQUIPOS</button>
         <button onclick="pedirTraspaso()" class="btn-main btn-trade" ${p.isPlayoffs ? 'disabled' : ''}>🔄 PEDIR TRASPASO</button>
     `;
-    guardarPartida(); 
+    guardarPartida(); // Auto-guardado cada vez que volvemos al menú principal
 }
 
 function pedirTraspaso() {
@@ -193,10 +189,11 @@ function ejecutarTraspaso() {
         p.team = targetName; prepararLiga(); p.sMatches = 0; p.stats.matches = 0; 
         p.stats.pts=0; p.stats.ast=0; p.stats.reb=0; p.stats.rob=0; p.stats.tap=0; p.stats.tcMake=0; p.stats.tcAttempt=0;
         evalRole(); escribirDialogo(`🚨 BOMBAZO: Traspasado a ${targetName}.`); updateUI();
-        guardarPartida();
+        guardarPartida(); // Guardar tras traspaso
     } else escribirDialogo(`AGENTE:<br>El GM de ${targetName} dice que con ${p.ovr} OVR no tienes nivel para jugar allí.`);
 }
 
+// === PESTAÑA EQUIPOS ===
 function abrirEquipos() {
     let select = document.getElementById('sel-equipo');
     select.innerHTML = '';
@@ -212,24 +209,28 @@ function mostrarEquipoInfo() {
     let tName = document.getElementById('sel-equipo').value;
     let realTeamObj = DB[p.fase].teams.find(x => x.name === tName);
     let ovr = realTeamObj.ovr;
+    
     let html = `<h3 style="color:var(--accent); margin-bottom:10px;">${tName.toUpperCase()} - <span style="color:#fff;">MEDIA: ${ovr}</span></h3><hr style="border-color:#333; margin-bottom:15px;">`;
     if(p.team === tName) html += `<p style="color:var(--success); margin-bottom: 5px;">🌟 <b>${p.name} (TÚ)</b> - ${p.pos} | <b>${p.ovr} OVR</b></p>`;
+    
     if(realTeamObj.roster) {
         realTeamObj.roster.forEach(jug => {
             let icon = ["B","E","A","AP","P"].includes(jug.p) ? "👤" : "🔄";
             let color = (jug.n === realTeamObj.star) ? "color:var(--accent);" : "color:#ccc;";
             let extraIcon = (jug.n === realTeamObj.star) ? "⭐" : icon;
-            html += `<p style="${color} margin-bottom:5px;">${extraIcon} ${jug.n} (${posMap[jug.p] || "S"}) | <b style="color:#fff;">${jug.o} OVR</b></p>`;
+            html += `<p style="${color} margin-bottom:5px;">${extraIcon} ${jug.n} (${posMap[jug.p]}) | <b style="color:#fff;">${jug.o} OVR</b></p>`;
         });
     } else html += `<p style="color:#888;">Plantilla no disponible.</p>`;
+    
     document.getElementById('team-roster-div').innerHTML = html;
 }
 
 // =====================================================================
-// 5. MOTOR DE PARTIDO DINÁMICO
+// 5. MOTOR DE PARTIDO
 // =====================================================================
 function play() {
     evalRole(); updateUI();
+    
     let posiblesRivales;
     if (p.isPlayoffs) posiblesRivales = [p.playoffRival];
     else if (p.fase === 0) posiblesRivales = leagueTable.filter(t => !t.isPlayer && t.conf === p.teamData.conf);
@@ -239,12 +240,8 @@ function play() {
     match.j = 0; match.pts = 0; match.ast = 0; match.reb = 0; match.rob = 0; match.tap = 0; match.tc = 0; match.ok = 0;
     
     let diff = getMyTeamOvr() - match.rival.ovr; 
-    
-    // CORRECCIÓN DIFICULTAD: Bajamos el peso de la diferencia de OVR de 1.5 a 0.7 
-    // para que puedas ganar con equipos malos si juegas bien.
-    match.finalBaseMyScore = 65 + Math.floor(diff * 0.7) + Math.floor(Math.random() * 10);
-    match.finalBaseRivScore = 65 - Math.floor(diff * 0.7) + Math.floor(Math.random() * 10); 
-    
+    match.finalBaseMyScore = 65 + Math.floor(diff * 1.5) + Math.floor(Math.random() * 10);
+    match.finalBaseRivScore = 65 - Math.floor(diff * 1.5) + Math.floor(Math.random() * 10); 
     if (p.fase === 0) match.finalBaseRivScore += 4;
     
     match.myScore = 0; match.rivScore = 0;
@@ -258,8 +255,10 @@ function play() {
     updateScoreboard();
 
     document.getElementById('game-log').innerHTML = ''; 
-    let previaTexto = diff < -5 ? `Partido difícil. ${match.rival.name} es favorito.` : `Partido igualado. ¡A ganar!`;
-    escribirDialogo(`RETRANSMISIÓN:<br><br>¡Balón al aire! Jugamos contra ${match.rival.name}.<br>${previaTexto}`);
+    let previaTexto = diff < -5 ? `Partido muy difícil hoy. ${match.rival.name} es superior.` : `Partido igualado. ¡A ganar!`;
+    if(p.isPlayoffs) previaTexto = `¡Tensión máxima! Nos jugamos todo en los Playoffs.`;
+    
+    escribirDialogo(`RETRANSMISIÓN:<br><br>¡Balón al aire! Jugamos contra ${match.rival.name}, liderados por ${match.rival.star}.<br>${previaTexto}`);
     document.getElementById('actions').innerHTML = ''; 
     setTimeout(next, 2000);
 }
@@ -273,30 +272,34 @@ function getProbabilidad(accion) {
     let diffOvr = p.ovr - match.rival.ovr;
     let mod = Math.floor(diffOvr / 2); 
     if (p.fase === 0) mod -= 4; 
+    
     let prob = (accion==='m')?p.fisico:(accion==='t')?p.tiro:(accion==='a')?p.manejo:(accion==='ro')?p.def-5:(accion==='ta')?p.def:Math.max(p.fisico,p.def)+10;
     return Math.max(5, Math.min(95, prob + mod));
 }
 
 function next() {
     if (match.j >= match.numPlays) return finish();
+    
     let stepMy = Math.floor(match.finalBaseMyScore / match.numPlays);
     let stepRiv = Math.floor(match.finalBaseRivScore / match.numPlays);
     match.myScore += stepMy; match.rivScore += stepRiv;
+    
     let times5 = ["1Q | 04:30", "2Q | 06:15", "3Q | 02:50", "4Q | 05:00", "4Q | 00:45"];
     let times3 = ["3Q | 03:00", "4Q | 06:10", "4Q | 00:54"];
     document.getElementById('sb-time').innerText = (match.numPlays === 5) ? times5[match.j] : times3[match.j];
     updateScoreboard();
+    
     let tipo = match.pool[match.j];
     let html = `<div class="dialog-box log-entry"><span style="font-size:0.7em; color:var(--accent);">SITUACIÓN: ${tipo}</span>
         <div class="action-btns" id="btns-${match.j}">`;
     if (tipo === "ATAQUE") {
-        html += `<button onclick="res('m', ${match.j})">MATE</button>
-                 <button onclick="res('t', ${match.j})">TRIPLE</button>
-                 <button onclick="res('a', ${match.j})">ASISTIR</button>`;
+        html += `<button onclick="res('m', ${match.j})">MATE ESPECTACULAR [${getProbabilidad('m')}%]</button>
+                 <button onclick="res('t', ${match.j})">TRIPLE [${getProbabilidad('t')}%]</button>
+                 <button onclick="res('a', ${match.j})">ASISTIR [${getProbabilidad('a')}%]</button>`;
     } else {
-        html += `<button onclick="res('ro', ${match.j})">ROBO</button>
-                 <button onclick="res('ta', ${match.j})">TAPÓN</button>
-                 <button onclick="res('re', ${match.j})">REBOTE</button>`;
+        html += `<button onclick="res('ro', ${match.j})">INTENTAR ROBO [${getProbabilidad('ro')}%]</button>
+                 <button onclick="res('ta', ${match.j})">TAPÓN [${getProbabilidad('ta')}%]</button>
+                 <button onclick="res('re', ${match.j})">REBOTE DEF. [${getProbabilidad('re')}%]</button>`;
     }
     html += `</div><div id="res-${match.j}" style="margin-top: 15px; font-size: 0.7em;"></div></div>`;
     document.getElementById('game-log').insertAdjacentHTML('beforeend', html); scrollToBottom();
@@ -307,23 +310,29 @@ function res(tipo, id) {
     let ok = (Math.random() * 100 < getProbabilidad(tipo)); 
     let msg = ""; let pts = 0;
     if(tipo==='m' || tipo==='t') p.stats.tcAttempt++;
-    if(tipo==='m') { if(ok){ pts=2; match.tc++; p.stats.tcMake++; msg=`¡Mate brutal!`; } else msg=`Fallo en el salto.`; }
-    else if(tipo==='t') { if(ok){ pts=3; match.tc++; p.stats.tcMake++; msg=`¡Triple limpio!`; } else msg=`Tiro corto.`; }
-    else if(tipo==='a') { if(ok){ pts=2; match.ast++; msg=`Gran pase.`; } else msg=`Pase cortado.`; }
-    else if(tipo==='ro') { if(ok){ pts=2; match.rob++; msg=`¡Robo rápido!`; } else msg=`Falta personal.`; }
-    else if(tipo==='ta') { if(ok){ match.tap++; msg=`¡Tapón!`; } else msg=`Llega tarde.`; }
-    else if(tipo==='re') { if(ok){ match.reb++; msg=`Rebote capturado.`; } else msg=`Pierde el salto.`; }
+
+    if(tipo==='m') { if(ok){ pts=2; match.tc++; p.stats.tcMake++; msg=`¡Póster brutal!`; } else msg=`Bloqueado por la defensa.`; }
+    else if(tipo==='t') { if(ok){ pts=3; match.tc++; p.stats.tcMake++; msg=`¡Triple limpio!`; } else msg=`El tiro sale fuera.`; }
+    else if(tipo==='a') { if(ok){ pts=2; match.ast++; msg=`Asistencia de manual.`; } else msg=`Pase interceptado.`; }
+    else if(tipo==='ro') { if(ok){ pts=2; match.rob++; msg=`¡Robo y anota!`; } else msg=`Falta personal.`; }
+    else if(tipo==='ta') { if(ok){ match.tap++; msg=`¡Tapón espectacular!`; } else msg=`Llega tarde, canasta rival.`; }
+    else if(tipo==='re') { if(ok){ match.reb++; msg=`Rebote asegurado.`; } else msg=`Pierde el salto. Canasta.`; }
 
     if(ok) { match.ok++; match.myScore += (tipo!=='ta'&&tipo!=='re') ? pts : 0; match.pts += (tipo==='m'||tipo==='t')?pts:0; } 
     else { match.rivScore += 2; }
+
     updateScoreboard(); 
     document.getElementById(`res-${id}`).innerHTML = `<b style="color:${ok ? 'var(--success)' : 'var(--danger)'}">🎙️: "${msg}"</b>`;
     match.j++; scrollToBottom(); setTimeout(next, 1500);
 }
 
+// =====================================================================
+// 6. FIN DEL PARTIDO Y DRAFT
+// =====================================================================
 function finish() {
     document.getElementById('live-scoreboard').style.display = 'none';
     let minMult = p.role === "Titular" ? 1.5 : 0.8; 
+
     let gamePts = match.pts + Math.floor((Math.random() * 4 + (p.ovr / 15)) * minMult);
     let gameAst = match.ast + Math.floor(Math.random() * 3 * minMult);
     let gameReb = match.reb + Math.floor(Math.random() * 4 * minMult);
@@ -350,9 +359,13 @@ function finish() {
     p.stats.matches++; p.sMatches++; p.teamData.pts += gamePts;
     p.money += (win ? 300 : 100) + (gamePts >= 20 ? 100 : 0); 
     
-    escribirDialogo(win ? `¡Victoria de ${p.team}!` : `Derrota para ${p.team}...`);
-    updateUI();
-    guardarPartida();
+    let endMsg = win ? `¡Victoria de ${p.team}!` : `Derrota para ${p.team}...`;
+    let endHtml = `<div class="dialog-box log-entry" style="text-align:center; border-color:${win?'var(--success)':'var(--danger)'}">
+        <p style="font-size:1.2em; margin-bottom:10px;">${match.myScore} - ${match.rivScore}</p>
+        <p style="font-size:0.7em; color:${win?'var(--success)':'var(--danger)'}; font-weight:bold;">${endMsg}</p>
+        <p style="font-size:0.55em; color:#aaa; margin-top:10px;">Tus stats: ${gamePts} PTS | ${gameAst} AST | ${gameReb} REB</p>
+    </div>`;
+    document.getElementById('game-log').insertAdjacentHTML('beforeend', endHtml); scrollToBottom(); updateUI();
 
     let numEquiposConf = leagueTable.filter(t => t.conf === p.teamData.conf).length;
     let partidosTemporada = (p.fase === 0) ? (numEquiposConf - 1) * 2 : (leagueTable.length - 1);
@@ -361,12 +374,16 @@ function finish() {
         if (p.playoffStage === "SEMIFINAL") {
             if (win) {
                 p.playoffStage = "GRAN FINAL"; p.playoffRival = p.playoffOtherWinner;
-                escribirDialogo(`🏆 ¡A LA FINAL!`);
-                setTimeout(renderMenu, 2500);
-            } else { escribirDialogo(`❌ Eliminados.`); setTimeout(draft, 2500); }
+                escribirDialogo(`🏆 ¡A LA FINAL! Tras una dura semifinal, nos jugamos el título contra ${p.playoffRival.name}.`);
+                setTimeout(renderMenu, 4000);
+            } else {
+                escribirDialogo(`❌ Eliminados en Semifinales. Un golpe muy duro para el equipo.`);
+                setTimeout(draft, 4000);
+            }
         } else if (p.playoffStage === "GRAN FINAL") {
-            escribirDialogo(win ? `🥇 ¡CAMPEONES!` : `🥈 Perdimos la final.`);
-            setTimeout(draft, 2500);
+            if(win) escribirDialogo(`🥇 ¡CAMPEONES JUNIOR! Has liderado a tu equipo hasta el título.`);
+            else escribirDialogo(`🥈 Perdemos la final... Hemos estado tan cerca. Cabeza alta.`);
+            setTimeout(draft, 4000);
         }
     } else {
         if(p.sMatches >= partidosTemporada) {
@@ -374,32 +391,42 @@ function finish() {
                 let miConfTeams = leagueTable.filter(t => t.conf === p.teamData.conf).sort((a,b)=>b.v - a.v);
                 if(miConfTeams[0].name === p.team) {
                     p.isPlayoffs = true; p.playoffStage = "SEMIFINAL";
-                    let ganadores = leagueTable.filter(t=>!t.isPlayer).sort(()=>0.5-Math.random());
-                    p.playoffRival = ganadores[0]; p.playoffOtherWinner = ganadores[1];
-                    escribirDialogo(`🌟 ¡A PLAYOFFS!`);
-                    setTimeout(renderMenu, 3000);
-                } else { escribirDialogo(`Temporada terminada.`); setTimeout(draft, 3000); }
+                    let w1 = leagueTable.filter(t=>t.conf===1).sort((a,b)=>b.v-a.v)[0];
+                    let w2 = leagueTable.filter(t=>t.conf===2).sort((a,b)=>b.v-a.v)[0];
+                    let w3 = leagueTable.filter(t=>t.conf===3).sort((a,b)=>b.v-a.v)[0];
+                    let w4 = leagueTable.filter(t=>t.conf===4).sort((a,b)=>b.v-a.v)[0];
+                    let ganadores = [w1,w2,w3,w4].filter(w => w && w.name !== p.team);
+                    p.playoffRival = ganadores[0]; p.playoffOtherWinner = (Math.random() > 0.5) ? ganadores[1] : ganadores[2];
+                    escribirDialogo(`🌟 ¡CAMPEONES DE CONFERENCIA! Entramos a Playoffs. Rival Semis: ${p.playoffRival.name}.`);
+                    setTimeout(renderMenu, 5000);
+                } else {
+                    escribirDialogo(`No hemos logrado ganar la conferencia. Nos quedamos fuera de Playoffs. Temporada terminada.`);
+                    setTimeout(draft, 4000);
+                }
             } else { setTimeout(draft, 3000); }
-        } else { setTimeout(renderMenu, 2000); }
+        } else { setTimeout(renderMenu, 3000); }
     }
 }
 
 function draft() {
     document.getElementById('actions').innerHTML = '';
-    let btnText = p.fase === 0 ? "FICHAR POR EQUIPO ACB" : (p.fase === 1 ? "DRAFT NBA" : "NUEVA TEMPORADA");
-    let draftHtml = `<div class="dialog-box log-entry" style="text-align:center;"><p>Fin de temporada.</p><button onclick="ascender()" class="btn-main" style="margin-top:15px;">${btnText}</button></div>`;
+    let msg = p.fase === 0 ? `Temporada Junior finalizada.<br>Las franquicias ACB han mostrado interés en ti.` : 
+             (p.fase === 1 ? `Has dominado la ACB. La directiva de la NBA te invita al DRAFT.` : `Temporada NBA concluida.<br>Tu legado continúa.`);
+    let btnText = p.fase === 0 ? "FICHAR POR EQUIPO ACB" : (p.fase === 1 ? "ASISTIR AL DRAFT NBA" : "NUEVA TEMPORADA");
+    let draftHtml = `<div class="dialog-box log-entry" style="text-align:center; border-color:var(--accent);">
+        <p style="font-size:0.7em; line-height:1.8; color:#fff;">${msg}</p><button onclick="ascender()" class="btn-main" style="margin-top:15px;">${btnText}</button></div>`;
     document.getElementById('game-log').insertAdjacentHTML('beforeend', draftHtml); scrollToBottom();
-    guardarPartida();
+    guardarPartida(); // Guardar antes de elegir ascender
 }
 
 function ascender() {
     if(p.fase < 2) p.fase++; 
     p.isPlayoffs = false; p.playoffStage = ""; 
     let options = DB[p.fase].teams;
-    let html = `<div class="dialog-box log-entry"><span>Elige equipo:</span>
+    let html = `<div class="dialog-box log-entry"><span style="color:var(--accent);">AGENTE: Tienes ofertas en la ${DB[p.fase].n}. ¿Dónde quieres jugar?</span>
         <select id="draft-target" style="margin: 10px 0;">`;
     options.forEach(o => html += `<option value="${o.name}">${o.name}</option>`);
-    html += `</select><button onclick="ejecutarAscenso()" class="btn-main">FIRMAR</button></div>`;
+    html += `</select><button onclick="ejecutarAscenso()" class="btn-main">FIRMAR CONTRATO</button></div>`;
     document.getElementById('game-log').innerHTML = html; document.getElementById('actions').innerHTML = '';
 }
 
@@ -409,17 +436,19 @@ function ejecutarAscenso() {
     p.stats.pts=0; p.stats.ast=0; p.stats.reb=0; p.stats.rob=0; p.stats.tap=0; p.stats.tcAttempt=0; p.stats.tcMake=0;
     prepararLiga(); evalRole(); updateUI(); 
     document.getElementById('game-log').innerHTML = '';
-    escribirDialogo(`Has fichado por ${p.team}.`);
+    escribirDialogo(`NOTICIA:<br><br>Oficial. ${p.name} jugará en ${p.team}. La exigencia competitiva será máxima en la ${DB[p.fase].n}.`);
     renderMenu();
+    guardarPartida(); // Guardar tras firmar contrato
 }
 
 function train() {
     let cost = getTrainCost();
-    if(p.money < cost) return alert(`No tienes dinero.`);
+    if(p.money < cost) return alert(`Fondos insuficientes. El coste es de ${cost}€.`);
+    if(p.ovr >= DB[p.fase].maxOvr) return alert(`Límite OVR alcanzado en esta liga (${DB[p.fase].maxOvr}).`);
     p.money -= cost; p.fisico += 1; p.tiro += 1; p.def += 1; p.manejo += 1;
     p.ovr = Math.min(DB[p.fase].maxOvr, Math.round((p.fisico+p.tiro+p.def+p.manejo)/4));
     evalRole(); updateUI(); renderMenu(); 
-    escribirDialogo(`Entrenamiento completado. OVR: ${p.ovr}`);
+    escribirDialogo(`ENTRENAMIENTO:<br><br>Atributos mejorados. Nueva Media: ${p.ovr} OVR.`);
 }
 
 function abrirPerfil() {
@@ -439,7 +468,7 @@ function updateUI() {
     document.getElementById('ui-team').innerText = `${p.team.toUpperCase()} | ${p.pos.toUpperCase()}`;
     document.getElementById('ui-money').innerText = p.money + "€";
     document.getElementById('ui-ovr').innerText = p.ovr;
-    document.getElementById('ui-liga').innerText = p.isPlayoffs ? "PLAYOFFS" : DB[p.fase].n;
+    document.getElementById('ui-liga').innerText = p.isPlayoffs ? "PLAYOFFS JUNIOR" : DB[p.fase].n;
     
     let rolBadge = document.getElementById('ui-rol');
     rolBadge.innerText = p.role.toUpperCase();
@@ -448,17 +477,25 @@ function updateUI() {
     let m = p.stats.matches || 1;
     document.getElementById('st-ppp').innerText = (p.stats.pts/m).toFixed(1);
     document.getElementById('st-app').innerText = (p.stats.ast/m).toFixed(1);
-    document.getElementById('st-tc').innerText = p.stats.tcAttempt > 0 ? Math.round((p.stats.tcMake / p.stats.tcAttempt) * 100) + "%" : "0%";
+    document.getElementById('st-rpp').innerText = (p.stats.reb/m).toFixed(1);
+    document.getElementById('st-ropp').innerText = (p.stats.rob/m).toFixed(1);
+    document.getElementById('st-tpp').innerText = (p.stats.tap/m).toFixed(1);
+    
+    let tcPerc = p.stats.tcAttempt > 0 ? Math.round((p.stats.tcMake / p.stats.tcAttempt) * 100) : 0;
+    document.getElementById('st-tc').innerText = tcPerc + "%";
 
     let eqFiltrados = p.fase === 0 && !p.isPlayoffs ? leagueTable.filter(t => t.conf === p.teamData.conf) : leagueTable;
+
     let tpts = eqFiltrados.map(t => ({ name: t.isPlayer ? "TÚ" : t.star, pts: t.pts })).sort((a,b) => b.pts - a.pts);
-    document.getElementById('table-pts').innerHTML = tpts.slice(0,5).map((r,i) => `<tr><td>${i+1}.${r.name.substring(0,10)}</td><td style="text-align:right">${(r.pts/m).toFixed(1)}</td></tr>`).join('');
+    document.getElementById('table-pts').innerHTML = tpts.slice(0,5).map((r,i) => `<tr class="${r.name === 'TÚ' ? 'my-row':''}"><td>${i+1}.${r.name.substring(0,10)}</td><td style="text-align:right">${(r.pts/m).toFixed(1)}</td></tr>`).join('');
+    
     let eqData = [...eqFiltrados].sort((a,b) => b.v - a.v);
-    document.getElementById('table-vd').innerHTML = eqData.map((r,i) => `<tr style="${r.isPlayer?'color:var(--accent)':''}"><td>${i+1}.${r.name.substring(0,12)}</td><td style="text-align:right">${r.v}-${r.d}</td></tr>`).join('');
+    document.getElementById('table-vd').innerHTML = eqData.map((r,i) => `<tr class="${r.isPlayer ? 'my-row':''}"><td>${i+1}.${r.name.substring(0,12)}</td><td style="text-align:right">${r.v}-${r.d}</td></tr>`).join('');
 }
 
 function escribirDialogo(txt) {
-    document.getElementById('game-log').insertAdjacentHTML('beforeend', `<div class='dialog-box log-entry'><p style="font-size:0.7em;">${txt}</p></div>`);
+    document.getElementById('game-log').insertAdjacentHTML('beforeend', `<div class='dialog-box log-entry'><p style="font-size:0.7em; line-height:1.6; color:#ccc;">${txt}</p></div>`);
     scrollToBottom();
 }
+
 function scrollToBottom() { let view = document.getElementById('game-view'); view.scrollTo({ top: view.scrollHeight, behavior: 'smooth' }); }
