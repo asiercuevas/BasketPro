@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Berenguer Dalma #17 | Modo Carrera Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="game-container" style="position: relative;">
+    
+    <div id="setup-screen" class="dialog-box" style="margin: 20px; text-align: center;">
+        <h1 class="pixel-title" style="color: var(--accent); margin-bottom: 20px; font-size: 1.5em;">CREA TU LEYENDA</h1>
+        <p style="font-size: 0.6em; color: #aaa; margin-bottom: 20px; line-height: 1.5;">Ficha federativa para iniciar en la liga Junior.</p>
+        
+        <div class="form-group">
+            <input type="text" id="in-name" placeholder="NOMBRE (Ej. Asier)" value="Asier">
+            <input type="number" id="in-dorsal" placeholder="DORSAL (Ej. 17)" value="17" min="0" max="99">
+        </div>
+
+        <div class="form-group">
+            <select id="in-pos">
+                <option value="Base">Posición: Base</option>
+                <option value="Escolta">Posición: Escolta</option>
+                <option value="Alero">Posición: Alero</option>
+                <option value="Ala-Pívot">Posición: Ala-Pívot</option>
+                <option value="Pívot">Posición: Pívot</option>
+            </select>
+            <select id="in-style">
+                <option value="equilibrado">Estilo: Equilibrado</option>
+                <option value="tirador">Estilo: Francotirador (+Tiro)</option>
+                <option value="defensor">Estilo: Especialista Defensivo (+Robo)</option>
+                <option value="organizador">Estilo: Playmaker (+Pase)</option>
+                <option value="atletico">Estilo: Bestia Atlética (+Mates)</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <select id="in-nat">
+                <option value="🇪🇸 ESP">España 🇪🇸</option>
+                <option value="🇺🇸 USA">Estados Unidos 🇺🇸</option>
+                <option value="🇦🇷 ARG">Argentina 🇦🇷</option>
+                <option value="🇫🇷 FRA">Francia 🇫🇷</option>
+                <option value="🇲🇽 MEX">México 🇲🇽</option>
+                <option value="🇷🇸 SRB">Serbia 🇷🇸</option>
+                <option value="🇬🇷 GRE">Grecia 🇬🇷</option>
+                <option value="🇮🇹 ITA">Italia 🇮🇹</option>
+                <option value="🇩🇪 GER">Alemania 🇩🇪</option>
+                <option value="🇨🇦 CAN">Canadá 🇨🇦</option>
+                <option value="🇦🇺 AUS">Australia 🇦🇺</option>
+                <option value="🇧🇷 BRA">Brasil 🇧🇷</option>
+                <option value="🇸🇮 SLO">Eslovenia 🇸🇮</option>
+                <option value="🇱🇹 LTU">Lituania 🇱🇹</option>
+                <option value="🇭🇷 CRO">Croacia 🇭🇷</option>
+                <option value="🇵🇷 PUR">Puerto Rico 🇵🇷</option>
+                <option value="🇩🇴 DOM">R. Dominicana 🇩🇴</option>
+                <option value="🇯🇵 JPN">Japón 🇯🇵</option>
+                <option value="🇨🇳 CHN">China 🇨🇳</option>
+                <option value="🇳🇬 NGR">Nigeria 🇳🇬</option>
+                <option value="🇸🇳 SEN">Senegal 🇸🇳</option>
+            </select>
+            
+            <select id="in-team">
+                <option value="C.B. Berenguer Dalma">C.B. Berenguer Dalma</option>
+                <option value="Real Madrid Jr.">Real Madrid Jr.</option>
+                <option value="Barça Jr.">Barça Jr.</option>
+                <option value="Joventut Jr.">Joventut Jr.</option>
+                <option value="Valencia Basket Jr.">Valencia Basket Jr.</option>
+                <option value="Unicaja Jr.">Unicaja Jr.</option>
+                <option value="Baskonia Jr.">Baskonia Jr.</option>
+                <option value="Estudiantes Jr.">Estudiantes Jr.</option>
+                <option value="Gran Canaria Jr.">Gran Canaria Jr.</option>
+                <option value="Zaragoza Jr.">Zaragoza Jr.</option>
+                <option value="Tenerife Jr.">Tenerife Jr.</option>
+                <option value="UCAM Murcia Jr.">UCAM Murcia Jr.</option>
+                <option value="Bilbao Basket Jr.">Bilbao Basket Jr.</option>
+                <option value="C.B. Torrent">C.B. Torrent</option>
+                <option value="Paterna">Paterna</option>
+                <option value="Godella">Godella</option>
+                <option value="L'Horta">L'Horta</option>
+                <option value="Amics Castelló">Amics Castelló</option>
+            </select>
+        </div>
+        
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+            <button onclick="iniciarCarrera()" class="btn-main" style="padding: 15px; font-size: 1em;">▶ NUEVA CARRERA</button>
+            <button id="btn-continuar" onclick="cargarPartida()" class="btn-main" style="display:none; padding: 15px; font-size: 1em; border-color: var(--success); color: var(--success);">💾 CONTINUAR PARTIDA</button>
+        </div>
+    </div>
+
+    <div id="main-game-ui" style="display: none; height: 100%; flex-direction: column;">
+        <header class="top-nav dialog-box">
+            <div class="player-info">
+                <span class="dorsal" id="ui-dorsal">#17</span>
+                <div>
+                    <span id="ui-name" class="pixel-title">JUGADOR</span>
+                    <span class="club-name"><span id="ui-nat">🇪🇸</span> | <span id="ui-team">BERENGUER DALMA</span> <br><span id="ui-rol" class="rol-badge">TITULAR</span></span>
+                </div>
+            </div>
+            <div class="economy-info">
+                <div style="text-align: right;">
+                    <span style="font-size: 0.6em; color: #888; display: block;">SALDO</span>
+                    <span id="ui-money" style="color: var(--accent); font-size: 0.9em;">0€</span>
+                </div>
+                <div class="ovr-circle" id="ui-ovr">65</div>
+            </div>
+        </header>
+
+        <div class="stats-grid dialog-box">
+            <div class="stat-box"><span class="s-val" id="st-ppp">0.0</span><span class="s-lab">PTS</span></div>
+            <div class="stat-box"><span class="s-val" id="st-app">0.0</span><span class="s-lab">AST</span></div>
+            <div class="stat-box"><span class="s-val" id="st-rpp">0.0</span><span class="s-lab">REB</span></div>
+            <div class="stat-box"><span class="s-val" id="st-ropp">0.0</span><span class="s-lab">ROB</span></div>
+            <div class="stat-box"><span class="s-val" id="st-tpp">0.0</span><span class="s-lab">TAP</span></div>
+            <div class="stat-box"><span class="s-val" id="st-tc">0%</span><span class="s-lab">%TC</span></div>
+        </div>
+
+        <main id="main-content">
+            <div id="game-view">
+                <div id="live-scoreboard" class="dialog-box sb-hud" style="display: none;">
+                    <div class="hud-team">
+                        <span class="hud-name" id="sb-my-team">MI EQUIPO</span>
+                        <span class="hud-pts" id="sb-my-pts">0</span>
+                    </div>
+                    <div class="hud-time">
+                        <span id="sb-time">1Q | 10:00</span>
+                    </div>
+                    <div class="hud-team" style="text-align:right;">
+                        <span class="hud-name" id="sb-rival-name">RIVAL</span>
+                        <span class="hud-pts" id="sb-riv-pts" style="color:#fff;">0</span>
+                    </div>
+                </div>
+
+                <div id="game-log"></div>
+            </div>
+
+            <aside id="sidebar">
+                <div id="actions"></div>
+                <div class="dialog-box" style="margin-top: 15px;">
+                    <span class="section-title">LIGA: <span id="ui-liga" style="color:var(--accent);">JUNIOR</span></span>
+                    <span class="section-title" style="margin-top: 10px;">LÍDERES (PTS)</span>
+                    <table id="table-pts"></table>
+                </div>
+                <div class="dialog-box" style="margin-top: 15px;">
+                    <span class="section-title">CLASIFICACIÓN (V-D)</span>
+                    <table id="table-vd"></table>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <div id="profile-modal" class="dialog-box" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 650px; z-index: 100; box-shadow: 0 0 0 2000px rgba(0,0,0,0.85); background: var(--bg-inside); border: 4px solid var(--accent);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #333; padding-bottom: 15px; margin-bottom: 20px;">
+            <h2 style="color: var(--accent); font-size: 1.1em; text-transform: uppercase;">📊 CARTA DE JUGADOR</h2>
+            <button onclick="cerrarPerfil()" style="background: var(--danger); border: none; color: #fff; cursor: pointer; font-size: 1em; padding: 8px 12px; border-radius: 4px;">X</button>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div style="background: #000; padding: 15px; border-radius: 6px; border: 2px dashed #444;">
+                <h3 style="color: #888; font-size: 0.7em; margin-bottom: 15px; text-align: center;">TÉCNICA Y FÍSICO</h3>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.7em;"><span>🎯 Tiro (Triple):</span> <span id="pr-tiro" style="color:#fff; font-weight:bold;">0</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.7em;"><span>💪 Físico (Mates):</span> <span id="pr-fisico" style="color:#fff; font-weight:bold;">0</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.7em;"><span>🏀 Manejo (Pase):</span> <span id="pr-manejo" style="color:#fff; font-weight:bold;">0</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.7em;"><span>🛡️ Defensa (Robo):</span> <span id="pr-def" style="color:#fff; font-weight:bold;">0</span></div>
+                
+                <div style="margin-top: 20px; text-align: center; background: #111; padding: 15px; border: 2px solid var(--accent); border-radius: 4px;">
+                    <span style="font-size: 0.6em; color: var(--accent); display: block;">MEDIA GENERAL (OVR)</span>
+                    <span id="pr-ovr" style="font-size: 1.6em; color: #fff; display: block; margin-top: 8px;">65</span>
+                </div>
+            </div>
+            <div style="background: #000; padding: 15px; border-radius: 6px; border: 2px dashed #444;">
+                <h3 style="color: #888; font-size: 0.7em; margin-bottom: 15px; text-align: center;">TOTALES CARRERA</h3>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.7em;"><span>🏟️ Partidos:</span> <span id="pr-matches" style="color:var(--accent); font-weight:bold;">0</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.7em;"><span>🔥 Puntos:</span> <span id="pr-pts" style="color:#fff; font-weight:bold;">0</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.7em;"><span>🤝 Asistencias:</span> <span id="pr-ast" style="color:#fff; font-weight:bold;">0</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.7em;"><span>📉 Rebotes:</span> <span id="pr-reb" style="color:#fff; font-weight:bold;">0</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.7em;"><span>⚡ Robos:</span> <span id="pr-rob" style="color:#fff; font-weight:bold;">0</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.7em;"><span>✋ Tapones:</span> <span id="pr-tap" style="color:#fff; font-weight:bold;">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="teams-modal" class="dialog-box" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; z-index: 110; box-shadow: 0 0 0 2000px rgba(0,0,0,0.85); background: var(--bg-inside); border: 2px solid #555;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 15px;">
+            <h2 style="color: #fff; font-size: 1.1em;">⛹️ EQUIPOS Y VALORACIONES</h2>
+            <button onclick="cerrarEquipos()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2em; font-weight: bold;">X</button>
+        </div>
+        <div style="margin-top: 15px;">
+            <span style="font-size: 0.7em; color: var(--accent);">SELECCIONA EQUIPO:</span>
+            <select id="sel-equipo" onchange="mostrarEquipoInfo()" style="width: 100%; margin-top: 10px; padding: 10px;"></select>
+        </div>
+        <div id="team-roster-div" style="background: #000; padding: 15px; border-radius: 6px; border: 1px dashed #444; margin-top: 15px; font-size: 0.75em; line-height: 2;">
+            </div>
+    </div>
+</div>
+
+<script src="data_nba.js"></script>
+<script src="data_acb.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
