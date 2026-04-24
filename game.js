@@ -193,11 +193,18 @@ function prepararLiga() {
 }
 
 function getMyTeamOvr() { let obj = DB[p.fase].teams.find(t => t.name === p.team); return obj ? obj.ovr : 70; }
+
+// === CORRECCIÓN: NUNCA ERES SUPLENTE EN JUNIOR ===
 function evalRole() {
     let equipoOvr = getMyTeamOvr();
-    if (p.ovr >= equipoOvr + 3) p.role = "Estrella";
-    else if (p.ovr >= equipoOvr - 4) p.role = "Titular";
-    else p.role = "Suplente";
+    if (p.fase === 0) {
+        if (p.ovr >= equipoOvr - 3) p.role = "Estrella";
+        else p.role = "Titular";
+    } else {
+        if (p.ovr >= equipoOvr + 3) p.role = "Estrella";
+        else if (p.ovr >= equipoOvr - 5) p.role = "Titular";
+        else p.role = "Suplente";
+    }
 }
 function getTrainCost() { return p.ovr >= 90 ? 1000 : (p.ovr >= 80 ? 600 : (p.ovr >= 70 ? 300 : 150)); }
 
@@ -395,14 +402,14 @@ function finish() {
     if(p.personality === "fiestero" && win) sueldo += 50; 
     p.money += win ? sueldo : Math.floor(sueldo/2); 
 
-    // ¡NUEVO! SISTEMA DINÁMICO DE FAMA (Subes fama según lo que anotas)
+    // SISTEMA DINÁMICO DE FAMA
     let fameGained = 0;
     if (gamePts >= 30) fameGained += 3;
     else if (gamePts >= 20) fameGained += 2;
     else if (gamePts >= 10) fameGained += 1;
     
-    if (p.personality === "fiestero" && fameGained > 0) fameGained += 1; // Los fiesteros sacan más rédito mediático
-    if (win && (match.myScore > match.rivScore + 15)) fameGained += 1; // Ganar de paliza da fama
+    if (p.personality === "fiestero" && fameGained > 0) fameGained += 1; 
+    if (win && (match.myScore > match.rivScore + 15)) fameGained += 1; 
     
     p.fame += fameGained;
     
@@ -639,7 +646,7 @@ function updateUI() {
     let tcPerc = p.stats.tcAttempt > 0 ? Math.round((p.stats.tcMake / p.stats.tcAttempt) * 100) : 0;
     if(e('st-tc')) e('st-tc').innerText = tcPerc + "%";
 
-    // ¡NUEVO! LÍDERES DE ANOTACIÓN (PUNTOS POR PARTIDO DE JUGADORES)
+    // LÍDERES DE ANOTACIÓN (PUNTOS POR PARTIDO DE JUGADORES)
     let tablePts = e('table-pts');
     if(tablePts) {
         let tpts = leagueTable.map(t => {
@@ -655,7 +662,7 @@ function updateUI() {
         }).join('');
     }
     
-    // ¡NUEVO! CLASIFICACIÓN DE CONFERENCIAS (MI CONF y OTRA CONF)
+    // CLASIFICACIÓN DE CONFERENCIAS (MI CONF y OTRA CONF)
     let tableVd1 = e('table-vd-1');
     let tableVd2 = e('table-vd-2');
     let tConf1 = e('title-conf1');
