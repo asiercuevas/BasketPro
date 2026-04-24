@@ -14,7 +14,8 @@ let p = {
     },
     sMatches: 0, fase: 0, role: "Titular",
     teamData: { v: 0, d: 0, pts: 0, conf: 0, name: "" },
-    isPlayoffs: false, playoffStage: "", playoffRival: null, playoffOtherWinner: null
+    isPlayoffs: false, playoffStage: "", playoffRival: null, playoffOtherWinner: null,
+    rivalTeam: "" 
 };
 
 let leagueTable = []; 
@@ -58,6 +59,53 @@ const DB_JUNIOR = {
 const DB = [DB_JUNIOR, DB_ACB, DB_NBA];
 
 // =====================================================================
+// FUNCIÓN DE RIVALIDAD DINÁMICA
+// =====================================================================
+function ubicarRival() {
+    if(!p.rivalName) return;
+    
+    DB[p.fase].teams.forEach(t => {
+        if (t.star === p.rivalName) t.star = "Estrella";
+        if (t.roster) {
+            t.roster.forEach(r => {
+                if (r.n === p.rivalName) { r.n = "Veterano"; r.o -= 5; } 
+            });
+        }
+    });
+
+    let rivalOvr = Math.min(DB[p.fase].maxOvr, p.ovr + 1);
+
+    if (p.fase === 0) {
+        p.rivalTeam = p.team;
+    } else {
+        if (!p.rivalTeam || p.rivalTeam === p.team || !DB[p.fase].teams.find(t => t.name === p.rivalTeam)) {
+            let posibles = DB[p.fase].teams.filter(t => t.name !== p.team);
+            if (rivalOvr >= (DB[p.fase].maxOvr - 5) || p.fame >= 60) {
+                posibles = posibles.sort((a, b) => b.ovr - a.ovr).slice(0, 5);
+            } else {
+                let equiposAcordes = posibles.filter(t => rivalOvr >= t.ovr - 4);
+                if(equiposAcordes.length > 0) posibles = equiposAcordes;
+            }
+            let randomTeam = posibles[Math.floor(Math.random() * posibles.length)];
+            p.rivalTeam = randomTeam.name;
+        }
+    }
+
+    let tDB = DB[p.fase].teams.find(t => t.name === p.rivalTeam);
+    if (tDB && tDB.roster && tDB.roster.length > 0) {
+        let slot = (p.rivalTeam === p.team) ? 1 : 0; 
+        tDB.roster[slot].n = p.rivalName;
+        tDB.roster[slot].o = rivalOvr;
+        tDB.star = p.rivalName; 
+        
+        if(leagueTable.length > 0) {
+            let leagueTeam = leagueTable.find(t => t.name === p.rivalTeam);
+            if(leagueTeam) leagueTeam.star = p.rivalName;
+        }
+    }
+}
+
+// =====================================================================
 // 3. SISTEMA DE AUTOGUARDADO Y CARGA
 // =====================================================================
 window.onload = function() {
@@ -83,21 +131,14 @@ function cargarPartida() {
         if (p.fame === undefined) { p.fame = 10; p.rings = 0; p.mvps = 0; p.allStars = 0; p.dpoys = 0; p.hasShoe = false; p.rivalReconciled = false; }
         if (p.height === undefined) p.height = 195;
         if (p.nat === undefined) p.nat = "🇪🇸 ESP";
+        if (p.rivalTeam === undefined) p.rivalTeam = "";
         
         p.ovr = Math.round((p.tiro + p.fisico + p.manejo + p.def + p.bandeja) / 5);
 
-        // MANTENER A TU AMIGO EN EL EQUIPO JUNIOR AL CARGAR
-        if (p.fase === 0) {
-            let miEquipoDB = DB[0].teams.find(t => t.name === p.team);
-            if (miEquipoDB && miEquipoDB.roster && miEquipoDB.roster.length > 1) {
-                miEquipoDB.roster[1].n = p.rivalName;
-                miEquipoDB.roster[1].o = p.ovr + 1;
-                miEquipoDB.star = p.rivalName;
-            }
-        }
-
         document.getElementById('setup-screen').style.display = 'none';
         document.getElementById('main-game-ui').style.display = 'flex';
+        
+        ubicarRival(); 
         evalRole(); updateUI(); renderMenu();
         escribirDialogo(`SISTEMA:<br>Partida cargada. Te quedan ${18 - p.season} temporadas para el retiro.`);
     }
@@ -128,26 +169,18 @@ function iniciarCarrera() {
     
     p.ovr = Math.round((p.tiro + p.fisico + p.manejo + p.def + p.bandeja) / 5);
 
-    // INYECTAR A TU RIVAL/AMIGO EN LA PLANTILLA
-    let miEquipoDB = DB[0].teams.find(t => t.name === p.team);
-    if (miEquipoDB && miEquipoDB.roster && miEquipoDB.roster.length > 1) {
-        miEquipoDB.roster[1].n = p.rivalName;
-        miEquipoDB.roster[1].o = p.ovr + 1;
-        miEquipoDB.star = p.rivalName;
-    }
-
     document.getElementById('setup-screen').style.display = 'none';
     document.getElementById('main-game-ui').style.display = 'flex';
     
     prepararLiga(); evalRole(); updateUI(); renderMenu();
     escribirDialogo(`AGENTE:<br>Jugarás de ${p.pos} con el #${p.dorsal} en ${p.team}. ¡A por la Temporada ${p.season}!`);
     
-    if(typeof StorySystem !== 'undefined') StorySystem.checkEvents(); // ESTO LANZA LA HISTORIA EN EL ACTO
-    
+    if(typeof StorySystem !== 'undefined') StorySystem.checkEvents();
     guardarPartida();
 }
 
 function prepararLiga() {
+    ubicarRival(); 
     leagueTable = [];
     let phaseDB = DB[p.fase].teams;
     phaseDB.forEach((t, i) => {
@@ -169,7 +202,7 @@ function evalRole() {
 function getTrainCost() { return p.ovr >= 90 ? 1000 : (p.ovr >= 80 ? 600 : (p.ovr >= 70 ? 300 : 150)); }
 
 // =====================================================================
-// 5. MENÚS, TRASPASOS Y EQUIPOS
+// 5. MENÚS Y TRASPASOS
 // =====================================================================
 function renderMenu() {
     let cost = getTrainCost();
@@ -195,7 +228,6 @@ function pedirTraspaso() {
     html += `</select><button onclick="ejecutarTraspaso()" class="btn-main">ENVIAR SOLICITUD</button><button onclick="cancelarTraspaso()" class="btn-main btn-trade">CANCELAR</button></div>`;
     document.getElementById('game-log').insertAdjacentHTML('beforeend', html); scrollToBottom();
 }
-
 function cancelarTraspaso() { escribirDialogo("AGENTE:<br>De acuerdo, nos quedamos donde estamos."); }
 
 function ejecutarTraspaso() {
@@ -220,7 +252,6 @@ function abrirEquipos() {
     select.value = p.team; mostrarEquipoInfo();
     document.getElementById('teams-modal').style.display = 'block';
 }
-
 function cerrarEquipos() { document.getElementById('teams-modal').style.display = 'none'; }
 
 function mostrarEquipoInfo() {
@@ -336,7 +367,7 @@ function res(tipo, id) {
 }
 
 // =====================================================================
-// 7. FIN DE PARTIDO Y PLAYOFFS
+// 7. FIN DE PARTIDO Y CÁLCULO DE FAMA
 // =====================================================================
 function finish() {
     document.getElementById('live-scoreboard').style.display = 'none';
@@ -363,12 +394,26 @@ function finish() {
     let sueldo = p.role === "Estrella" ? 400 : (p.role === "Titular" ? 200 : 150);
     if(p.personality === "fiestero" && win) sueldo += 50; 
     p.money += win ? sueldo : Math.floor(sueldo/2); 
+
+    // ¡NUEVO! SISTEMA DINÁMICO DE FAMA (Subes fama según lo que anotas)
+    let fameGained = 0;
+    if (gamePts >= 30) fameGained += 3;
+    else if (gamePts >= 20) fameGained += 2;
+    else if (gamePts >= 10) fameGained += 1;
+    
+    if (p.personality === "fiestero" && fameGained > 0) fameGained += 1; // Los fiesteros sacan más rédito mediático
+    if (win && (match.myScore > match.rivScore + 15)) fameGained += 1; // Ganar de paliza da fama
+    
+    p.fame += fameGained;
     
     let endMsg = win ? `¡Victoria de ${p.team}!` : `Derrota para ${p.team}...`;
+    let famaStr = fameGained > 0 ? `<p style="font-size:0.6em; color:gold; margin-top:5px;">🌟 ¡Actuación estelar! Sumas +${fameGained} Fama.</p>` : '';
+    
     let endHtml = `<div class="dialog-box log-entry" style="text-align:center; border-color:${win?'var(--success)':'var(--danger)'}">
         <p style="font-size:1.2em; margin-bottom:10px;">${match.myScore} - ${match.rivScore}</p>
         <p style="font-size:0.7em; color:${win?'var(--success)':'var(--danger)'}; font-weight:bold;">${endMsg}</p>
-        <p style="font-size:0.55em; color:#aaa; margin-top:10px;">Tus stats: ${gamePts} PTS | ${gameAst} AST | ${gameReb} REB | ${gameRob} ROB | ${gameTap} TAP</p>
+        <p style="font-size:0.55em; color:#aaa; margin-top:10px;">Tus stats: ${gamePts} PTS | ${gameAst} AST | ${gameReb} REB</p>
+        ${famaStr}
     </div>`;
     document.getElementById('game-log').insertAdjacentHTML('beforeend', endHtml); scrollToBottom(); updateUI();
 
@@ -471,13 +516,21 @@ function ejecutarAscenso(faseTarget, teamName, rolTarget) {
     p.stats.pts=0; p.stats.ast=0; p.stats.reb=0; p.stats.rob=0; p.stats.tap=0; p.stats.tcAttempt=0; p.stats.tcMake=0; p.stats.matches=0;
 
     p.team = teamName; p.fase = faseTarget; p.role = rolTarget; p.sMatches = 0; p.season++; p.isPlayoffs = false; p.playoffStage = ""; 
+    
+    if (faseTarget !== p.fase) p.rivalTeam = ""; 
+    
     prepararLiga(); updateUI(); document.getElementById('game-log').innerHTML = '';
     escribirDialogo(`NOTICIA:<br><br>Oficial. ${p.name} jugará en ${p.team}. ¡A por la Temporada ${p.season} de 17!`);
+    
+    if (p.rivalTeam && p.rivalTeam !== p.team) {
+        escribirDialogo(`📰 RUMORES:<br>¡Ojo! Las noticias dicen que ${p.rivalName} ha firmado un contratazo con ${p.rivalTeam}.`);
+    }
+
     renderMenu(); guardarPartida();
 }
 
 // =====================================================================
-// 9. ENTRENAMIENTO, UI A PRUEBA DE FALLOS Y RETIRADA G.O.A.T.
+// 9. ENTRENAMIENTO, UI Y RETIRADA G.O.A.T.
 // =====================================================================
 function retirarse(force = false) {
     if (force && !confirm("¿Seguro que quieres retirarte de forma anticipada? Perderás tiempo valioso para ser el G.O.A.T.")) return;
@@ -586,18 +639,58 @@ function updateUI() {
     let tcPerc = p.stats.tcAttempt > 0 ? Math.round((p.stats.tcMake / p.stats.tcAttempt) * 100) : 0;
     if(e('st-tc')) e('st-tc').innerText = tcPerc + "%";
 
-    let eqFiltrados = (!p.isPlayoffs && p.fase <= 1) ? leagueTable.filter(t => t.conf === p.teamData.conf) : leagueTable;
-
+    // ¡NUEVO! LÍDERES DE ANOTACIÓN (PUNTOS POR PARTIDO DE JUGADORES)
     let tablePts = e('table-pts');
     if(tablePts) {
-        let tpts = eqFiltrados.map(t => ({ name: t.isPlayer ? "TÚ" : t.star, pts: t.pts })).sort((a,b) => b.pts - a.pts);
-        tablePts.innerHTML = tpts.slice(0,5).map((r,i) => `<tr class="${r.name === 'TÚ' ? 'my-row':''}"><td>${i+1}.${r.name.substring(0,10)}</td><td style="text-align:right">${(r.pts/m).toFixed(1)}</td></tr>`).join('');
+        let tpts = leagueTable.map(t => {
+            let ppp = t.isPlayer ? (p.stats.pts / m) : ((t.pts / m) * (0.35 + (t.ovr/1000))); 
+            if (t.star === p.rivalName) ppp = ppp * 1.15; // Tu rival siempre está fuerte
+            return { name: t.isPlayer ? p.name.substring(0,10) : t.star.substring(0,10), team: t.name.substring(0,3), ppp: ppp, isMe: t.isPlayer, isRival: (t.star === p.rivalName) };
+        }).sort((a,b) => b.ppp - a.ppp);
+
+        tablePts.innerHTML = tpts.slice(0,5).map((r,i) => {
+            let color = r.isMe ? 'var(--accent)' : (r.isRival ? 'gold' : '#ccc');
+            let icon = r.isMe ? '🌟' : (r.isRival ? '⭐' : '');
+            return `<tr style="color:${color};"><td>${i+1}. ${icon}${r.name} <span style="font-size:0.7em; color:#555;">(${r.team.toUpperCase()})</span></td><td style="text-align:right">${r.ppp.toFixed(1)}</td></tr>`;
+        }).join('');
     }
     
-    let tableVd = e('table-vd');
-    if(tableVd) {
-        let eqData = [...eqFiltrados].sort((a,b) => b.v - a.v);
-        tableVd.innerHTML = eqData.map((r,i) => `<tr class="${r.isPlayer ? 'my-row':''}"><td>${i+1}.${r.name.substring(0,12)}</td><td style="text-align:right">${r.v}-${r.d}</td></tr>`).join('');
+    // ¡NUEVO! CLASIFICACIÓN DE CONFERENCIAS (MI CONF y OTRA CONF)
+    let tableVd1 = e('table-vd-1');
+    let tableVd2 = e('table-vd-2');
+    let tConf1 = e('title-conf1');
+    let tConf2 = e('title-conf2');
+
+    if(tableVd1 && tableVd2) {
+        let miConf = p.teamData.conf;
+        let eqMiConf = leagueTable.filter(t => t.conf === miConf).sort((a,b) => b.v - a.v);
+        let eqOtraConf = leagueTable.filter(t => t.conf !== miConf).sort((a,b) => b.v - a.v);
+
+        tConf1.innerText = `MI CONF. (${p.fase===0 ? 'GRUPO '+miConf : (miConf===1?'ESTE':'OESTE')})`;
+        tableVd1.innerHTML = eqMiConf.map((r,i) => `<tr style="${r.isPlayer ? 'color:var(--accent);' : (r.star===p.rivalName ? 'color:gold;' : '')}"><td>${i+1}.${r.name.substring(0,12)}</td><td style="text-align:right">${r.v}-${r.d}</td></tr>`).join('');
+
+        if(eqOtraConf.length > 0) {
+            tConf2.style.display = 'block';
+            tConf2.innerText = p.fase===0 ? "OTROS LÍDERES" : (miConf===1?'CONF. OESTE':'CONF. ESTE');
+            
+            if(p.fase === 0) {
+                // En Junior hay 4 grupos, mostramos al líder de cada uno de los otros
+                let lideresOtros = [];
+                [1,2,3,4].forEach(c => {
+                    if(c !== miConf) {
+                        let top = leagueTable.filter(t => t.conf === c).sort((a,b) => b.v - a.v)[0];
+                        if(top) lideresOtros.push(top);
+                    }
+                });
+                tableVd2.innerHTML = lideresOtros.sort((a,b)=>b.v-a.v).map((r,i) => `<tr style="${r.star===p.rivalName ? 'color:gold;':''}"><td>${r.name.substring(0,12)}</td><td style="text-align:right">${r.v}-${r.d}</td></tr>`).join('');
+            } else {
+                // En ACB/NBA mostramos los top 8 de la otra conferencia
+                tableVd2.innerHTML = eqOtraConf.slice(0,8).map((r,i) => `<tr style="${r.star===p.rivalName ? 'color:gold;':''}"><td>${i+1}.${r.name.substring(0,12)}</td><td style="text-align:right">${r.v}-${r.d}</td></tr>`).join('');
+            }
+        } else {
+            tConf2.style.display = 'none';
+            tableVd2.innerHTML = '';
+        }
     }
 }
 

@@ -9,11 +9,11 @@
 </head>
 <body>
 
-<div id="game-container" style="position: relative;">
+<div id="game-container">
     
-    <div id="setup-screen" class="dialog-box" style="margin: 20px; text-align: center;">
-        <h1 class="pixel-title" style="color: gold; margin-bottom: 10px; font-size: 1.2em;">LEGADO:<br>Ecos de Grandeza</h1>
-        <p style="font-size: 0.6em; color: #aaa; margin-bottom: 20px; line-height: 1.5;">Tienes 17 temporadas para convertirte en el G.O.A.T.</p>
+    <div id="setup-screen" class="dialog-box" style="text-align: center;">
+        <h1 class="pixel-title" style="color: gold; margin-bottom: 15px;">LEGADO:<br>Ecos de Grandeza</h1>
+        <p style="font-size: 0.6em; color: #aaa; margin-bottom: 20px; line-height: 1.5;">Tienes 17 temporadas para ser el G.O.A.T.</p>
         
         <div class="form-group">
             <input type="text" id="in-name" placeholder="TU NOMBRE" value="Asier">
@@ -35,14 +35,14 @@
                 <option value="mate_tapon">Estilo: Mate y Tapón (+Físico y Defensa)</option>
                 <option value="tiro_robo">Estilo: Tiro y Robo (+Tiro y Defensa)</option>
                 <option value="manejo_bandeja">Estilo: Manejo y Bandeja (+Manejo y Bandeja)</option>
-                <option value="tiro_manejo">Estilo: Creador de Tiros (+Tiro y Manejo)</option>
+                <option value="tiro_manejo">Estilo: Creador (+Tiro y Manejo)</option>
             </select>
         </div>
         
         <div class="form-group">
             <select id="in-personality">
                 <option value="deportista">Personalidad: Deportista (Mejor Entreno)</option>
-                <option value="fiestero">Personalidad: Showman (Más Fama y Dinero)</option>
+                <option value="fiestero">Personalidad: Showman (+ Fama y Dinero)</option>
             </select>
             <select id="in-nat">
                 <option value="🇪🇸 ESP">España 🇪🇸</option>
@@ -72,19 +72,19 @@
             </select>
         </div>
         
-        <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
-            <button onclick="iniciarCarrera()" class="btn-main" style="padding: 15px; font-size: 1em;">▶ INICIAR LEYENDA</button>
-            <button id="btn-continuar" onclick="cargarPartida()" class="btn-main" style="display:none; padding: 15px; font-size: 1em; border-color: var(--success); color: var(--success);">💾 CONTINUAR PARTIDA</button>
+        <div style="margin-top:20px;">
+            <button onclick="iniciarCarrera()" class="btn-main" style="padding: 15px; font-size: 0.8em; border-color: gold; color: gold;">▶ INICIAR LEYENDA</button>
+            <button id="btn-continuar" onclick="cargarPartida()" class="btn-main" style="display:none; padding: 15px; font-size: 0.8em; border-color: var(--success); color: var(--success);">💾 CONTINUAR PARTIDA</button>
         </div>
     </div>
 
-    <div id="main-game-ui" style="display: none; height: 100%; flex-direction: column;">
+    <div id="main-game-ui" style="display: none;">
         <header class="top-nav dialog-box">
             <div class="player-info">
                 <span class="dorsal" id="ui-dorsal">#17</span>
                 <div>
                     <span id="ui-name" class="pixel-title">JUGADOR</span>
-                    <span class="club-name"><span id="ui-nat">🇪🇸</span> | <span id="ui-height">195</span>cm | <span id="ui-team">EQUIPO</span> | T.<span id="ui-season">1</span>/17 <br><span id="ui-rol" class="rol-badge">TITULAR</span></span>
+                    <span class="club-name"><span id="ui-nat">🇪🇸</span> | <span id="ui-height">195</span>cm | <span id="ui-team">EQUIPO</span><br>T.<span id="ui-season">1</span>/17 | <span id="ui-rol" class="rol-badge">TITULAR</span></span>
                 </div>
             </div>
             <div class="economy-info">
@@ -113,7 +113,7 @@
                         <span class="hud-pts" id="sb-my-pts">0</span>
                     </div>
                     <div class="hud-time">
-                        <span id="sb-time">1Q | 10:00<br><span style="font-size:0.6em; color:var(--accent);">NORMAL</span></span>
+                        <span id="sb-time">1Q | 10:00<br><span style="font-size:0.8em; color:var(--accent);">NORMAL</span></span>
                     </div>
                     <div class="hud-team" style="text-align:right;">
                         <span class="hud-name" id="sb-rival-name">RIVAL</span>
@@ -126,63 +126,66 @@
 
             <aside id="sidebar">
                 <div id="actions"></div>
-                <div class="dialog-box" style="margin-top: 15px;">
-                    <span class="section-title">LIGA: <span id="ui-liga" style="color:var(--accent);">JUNIOR</span></span>
-                    <span class="section-title" style="margin-top: 10px;">LÍDERES (PTS)</span>
+                
+                <div class="dialog-box" style="margin-top: 10px;">
+                    <span class="section-title">🌟 LÍDERES ANOTACIÓN</span>
                     <table id="table-pts"></table>
                 </div>
-                <div class="dialog-box" style="margin-top: 15px;">
-                    <span class="section-title">CLASIFICACIÓN (V-D)</span>
-                    <table id="table-vd"></table>
+                
+                <div class="dialog-box" style="margin-top: 10px;">
+                    <span id="title-conf1" class="section-title" style="color:var(--accent);">MI CONFERENCIA</span>
+                    <table id="table-vd-1"></table>
+                    
+                    <span id="title-conf2" class="section-title" style="margin-top: 15px; color:#888;">OTRA CONFERENCIA</span>
+                    <table id="table-vd-2"></table>
                 </div>
             </aside>
         </main>
     </div>
 
-    <div id="profile-modal" class="dialog-box" style="display: none; position: absolute; top: 5%; left: 5%; width: 90%; max-width: 650px; z-index: 100; background: var(--bg-inside); border: 4px solid gold; box-shadow: 0 0 0 2000px rgba(0,0,0,0.85); max-height: 90vh; overflow-y: auto;">
+    <div id="profile-modal" class="dialog-box" style="display: none; position: absolute; top: 5%; left: 50%; transform: translateX(-50%); width: 90%; max-width: 650px; z-index: 100; box-shadow: 0 0 0 2000px rgba(0,0,0,0.85); max-height: 90vh; overflow-y: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 10px;">
-            <h2 style="color: gold; font-size: 1em;">👑 CARTA Y LEGADO G.O.A.T.</h2>
-            <button onclick="cerrarPerfil()" class="btn-main" style="padding: 5px; width:auto; background: var(--danger); border: none; color: #fff; cursor: pointer;">X</button>
+            <h2 style="color: gold; font-size: 0.8em; line-height: 1.5;">👑 LEGADO G.O.A.T.</h2>
+            <button onclick="cerrarPerfil()" class="btn-main" style="padding: 10px; width:auto; background: var(--danger); border: none; color: #fff; margin:0;">X</button>
         </div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
             <div style="background: #000; padding: 10px; border-radius: 4px;">
-                <h3 style="color: #888; font-size: 0.7em; margin-bottom: 10px; text-align: center;">ATRIBUTOS TÉCNICOS</h3>
-                <div style="display: flex; justify-content: space-between; font-size: 0.6em; margin-bottom: 5px;"><span>🎯 Tiro:</span> <span id="pr-tiro">0</span></div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.6em; margin-bottom: 5px;"><span>💪 Físico:</span> <span id="pr-fisico">0</span></div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.6em; margin-bottom: 5px;"><span>⛹️ Bandeja:</span> <span id="pr-bandeja">0</span></div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.6em; margin-bottom: 5px;"><span>🏀 Manejo:</span> <span id="pr-manejo">0</span></div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.6em; margin-bottom: 5px;"><span>🛡️ Defensa:</span> <span id="pr-def">0</span></div>
+                <h3 style="color: #888; font-size: 0.6em; margin-bottom: 10px; text-align: center;">ATRIBUTOS</h3>
+                <div style="display: flex; justify-content: space-between; font-size: 0.55em; margin-bottom: 5px;"><span>🎯 Tiro:</span> <span id="pr-tiro">0</span></div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.55em; margin-bottom: 5px;"><span>💪 Físico:</span> <span id="pr-fisico">0</span></div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.55em; margin-bottom: 5px;"><span>⛹️ Bandeja:</span> <span id="pr-bandeja">0</span></div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.55em; margin-bottom: 5px;"><span>🏀 Manejo:</span> <span id="pr-manejo">0</span></div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.55em; margin-bottom: 5px;"><span>🛡️ Defensa:</span> <span id="pr-def">0</span></div>
                 <div style="margin-top: 10px; text-align: center; border-top: 1px dashed #444; padding-top: 10px;">
-                    <span style="font-size: 0.6em; color: var(--accent); display: block;">MEDIA GENERAL (OVR)</span>
+                    <span style="font-size: 0.55em; color: var(--accent); display: block;">MEDIA (OVR)</span>
                     <span id="pr-ovr" style="font-size: 1.4em; color: #fff; display: block; margin-top: 5px;">65</span>
                 </div>
             </div>
 
             <div style="background: #111; padding: 10px; border-radius: 4px; border: 1px solid gold;">
-                <h3 style="color: gold; font-size: 0.65em; margin-bottom: 10px; text-align: center;">LOS 10 MANDAMIENTOS (T. Máx: 17)</h3>
-                <div id="goat-checklist" style="font-size: 0.55em; line-height: 1.8; color: #ccc;">
+                <h3 style="color: gold; font-size: 0.55em; margin-bottom: 10px; text-align: center; line-height:1.4;">LOS 10 MANDAMIENTOS</h3>
+                <div id="goat-checklist" style="font-size: 0.5em; line-height: 2; color: #ccc;">
                 </div>
             </div>
         </div>
         
         <div style="background: #000; padding: 15px; border-radius: 6px; border: 2px dashed #444; margin-top: 15px;">
-            <h3 style="color: #888; font-size: 0.7em; margin-bottom: 15px; text-align: center;">HISTORIAL DE CARRERA</h3>
-            <div id="history-content" style="font-size: 0.6em; line-height: 1.8;">
+            <h3 style="color: #888; font-size: 0.6em; margin-bottom: 15px; text-align: center;">HISTORIAL</h3>
+            <div id="history-content" style="font-size: 0.55em; line-height: 1.8;">
             </div>
         </div>
     </div>
 
-    <div id="teams-modal" class="dialog-box" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; z-index: 110; box-shadow: 0 0 0 2000px rgba(0,0,0,0.85); background: var(--bg-inside); border: 2px solid #555;">
+    <div id="teams-modal" class="dialog-box" style="display: none; position: absolute; top: 10%; left: 50%; transform: translateX(-50%); width: 90%; max-width: 600px; z-index: 110; box-shadow: 0 0 0 2000px rgba(0,0,0,0.85);">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 15px;">
-            <h2 style="color: #fff; font-size: 1.1em;">⛹️ EQUIPOS Y VALORACIONES</h2>
-            <button onclick="cerrarEquipos()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2em; font-weight: bold;">X</button>
+            <h2 style="color: #fff; font-size: 0.8em;">⛹️ EQUIPOS</h2>
+            <button onclick="cerrarEquipos()" class="btn-main" style="padding: 10px; width:auto; background: var(--danger); border: none; color: #fff; margin:0;">X</button>
         </div>
         <div style="margin-top: 15px;">
-            <span style="font-size: 0.7em; color: var(--accent);">SELECCIONA EQUIPO:</span>
-            <select id="sel-equipo" onchange="mostrarEquipoInfo()" style="width: 100%; margin-top: 10px; padding: 10px;"></select>
+            <select id="sel-equipo" onchange="mostrarEquipoInfo()" style="width: 100%; padding: 12px; background: #000; color: #fff; border: 1px solid #444; font-family: inherit; font-size: 0.6em;"></select>
         </div>
-        <div id="team-roster-div" style="background: #000; padding: 15px; border-radius: 6px; border: 1px dashed #444; margin-top: 15px; font-size: 0.75em; line-height: 2;">
+        <div id="team-roster-div" style="background: #000; padding: 15px; border-radius: 6px; border: 1px dashed #444; margin-top: 15px; font-size: 0.6em; line-height: 2.2;">
         </div>
     </div>
 
