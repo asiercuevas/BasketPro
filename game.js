@@ -325,8 +325,8 @@ function mostrarPremios() {
 
     // 3. Calcular puntuaciones de premios
     allPlayers.forEach(x => {
-        x.mvpScore = (x.ppp * 3.0) + (x.app * 2.0) + (x.rpp * 1.5);
-        x.dpoyScore = (x.ropp * 4.0) + (x.tapp * 3.0) + (x.rpp * 0.5);
+        x.mvpScore = (x.ppp * 1.0) + (x.rpp * 1.2) + (x.app * 1.5) + (x.ropp * 2.0) + (x.tapp * 2.0) + (x.v * 0.5);
+        x.dpoyScore = (x.ropp * 4.0) + (x.tapp * 4.0) + (x.def * 0.1) + (x.rpp * 0.5) + (x.v * 0.2);
     });
 
     // 4. Generar el Top 5 por categoría
@@ -725,7 +725,8 @@ function finish() {
 // =====================================================================
 function draft() {
     if (p.fase > 0) {
-        if (p.ovr >= 85 || p.fame >= 60) { p.allStars++; escribirDialogo(`🌟 ALL-STAR: Seleccionado para el All-Star Game.`); }
+        if (p.fase === 2 && (p.ovr >= 85 || p.fame >= 60)) { allStarWeekend(); return; }
+        else if (p.fase === 1 && (p.ovr >= 85 || p.fame >= 60)) { p.allStars++; escribirDialogo("🌟 ALL-STAR ACB: Convocado para el All-Star de la liga."); }
         if (p.ovr >= 90 && p.teamData.v >= (leagueTable.length*0.6)) { p.mvps++; p.fame += 10; escribirDialogo(`🏆 MVP: ¡Eres el M.V.P. de la Temporada!`); }
         if (p.def >= 85) { p.dpoys++; p.fame += 5; escribirDialogo(`🛡️ DPOY: Premio al Mejor Defensor del Año.`); }
         if ((p.season === 2 && p.fase === 1) || (p.season === 3 && p.fase === 2)) { p.rookies++; p.fame += 5; escribirDialogo(`👶 ROOKIE DEL AÑO. El futuro es tuyo.`); }
@@ -745,17 +746,29 @@ function draft() {
     if (p.fase === 0) targetFase = 1; 
     if (p.fase === 1 && p.fame >= 40 && p.ovr >= 80) targetFase = 2; 
 
-    let equiposAscenso = DB[targetFase].teams.sort(() => 0.5 - Math.random()).slice(0, 3);
-    equiposAscenso.forEach(eq => {
-        let rol = p.ovr >= eq.ovr + 3 ? "Estrella" : (p.ovr >= eq.ovr - 4 ? "Titular" : "Suplente");
-        if(targetFase === 0) rol = "Titular";
-        let sueldo = rol === "Estrella" ? 400 : (rol === "Titular" ? 200 : 150);
-        html += `<button onclick="ejecutarAscenso(${targetFase}, '${eq.name}', '${rol}')" class="btn-main" style="margin-top:10px; text-transform:none;">${eq.name} | ${rol} (${sueldo}€)</button>`;
-    });
-
-    if (p.fase > 0) html += `<button onclick="ejecutarAscenso(${p.fase}, '${p.team}', '${p.role}')" class="btn-main" style="margin-top:10px; border-color:#888; color:#888;">Renovar con ${p.team}</button>`;
     html += `</div>`;
-    document.getElementById('game-log').insertAdjacentHTML('beforeend', html); scrollToBottom(); guardarPartida();
+    document.getElementById('game-log').insertAdjacentHTML('beforeend', html); scrollToBottom();
+
+    // Llamar al sistema de draft correcto según la fase destino
+    if (targetFase === 2 && p.fase === 1) {
+        mostrarDraftNBA();
+    } else if (targetFase === 1 && p.fase === 0) {
+        mostrarDraftACB();
+    } else {
+        // Renovar en la misma liga
+        let equiposRenova = DB[p.fase].teams.sort(() => 0.5 - Math.random()).slice(0, 3);
+        let renovHtml = `<div class="dialog-box log-entry" style="border-color:#555; padding:12px;">
+            <p style="color:#aaa; font-size:0.7em; margin-bottom:10px;">Tu agente ha negociado estas ofertas:</p>`;
+        equiposRenova.forEach(eq => {
+            let rol = p.ovr >= eq.ovr + 3 ? "Estrella" : (p.ovr >= eq.ovr - 4 ? "Titular" : "Suplente");
+            let sueldo = rol === "Estrella" ? 400 : rol === "Titular" ? 200 : 150;
+            renovHtml += `<button onclick="ejecutarAscenso(${p.fase}, '${eq.name}', '${rol}')" class="btn-main" style="text-transform:none; font-size:0.72em; margin-bottom:4px;">${eq.name} | ${rol} | ${sueldo}€/p</button>`;
+        });
+        renovHtml += `<button onclick="ejecutarAscenso(${p.fase}, '${p.team}', '${p.role}')" class="btn-main" style="border-color:#555; color:#888; font-size:0.7em; margin-top:4px; text-transform:none;">🔄 Renovar con ${p.team}</button>`;
+        renovHtml += `</div>`;
+        document.getElementById('game-log').insertAdjacentHTML('beforeend', renovHtml); scrollToBottom();
+    }
+    guardarPartida();
 }
 
 function ejecutarAscenso(faseTarget, teamName, rolTarget) {
@@ -1005,4 +1018,282 @@ function escribirDialogo(txt) {
 function scrollToBottom() { 
     let view = document.getElementById('game-view'); 
     if(view) view.scrollTo({ top: view.scrollHeight, behavior: 'smooth' }); 
+}
+
+// =====================================================================
+// DRAFT ACB — DEBUT PROFESIONAL
+// =====================================================================
+function mostrarDraftACB() {
+    let equipos = [...DB[1].teams].sort(() => 0.5 - Math.random()).slice(0, 3);
+    let html = `<div class="dialog-box log-entry" style="border-color:#0ff; background:rgba(0,255,255,0.04); padding:15px;">
+        <h3 style="color:#0ff; text-align:center; margin-bottom:6px; font-size:1em;">📋 DEBUT PROFESIONAL — ACB</h3>
+        <p style="color:#ddd; font-size:0.65em; text-align:center; margin-bottom:12px;">
+            Tu agente ha recibido <b>3 ofertas de clubes ACB</b>. Elige dónde empieza tu carrera profesional.
+        </p>`;
+
+    equipos.forEach(eq => {
+        let rol = p.ovr >= eq.ovr + 3 ? "Estrella" : (p.ovr >= eq.ovr - 4 ? "Titular" : "Suplente");
+        let sueldo = rol === "Estrella" ? 400 : rol === "Titular" ? 200 : 150;
+        let badge = rol === "Estrella" ? "🌟" : rol === "Titular" ? "✅" : "🔋";
+        html += `<button onclick="ejecutarAscenso(1, '${eq.name}', '${rol}')" class="btn-main"
+            style="text-transform:none; font-size:0.72em; border-color:#0ff; color:#fff; margin-bottom:5px; text-align:left; padding:10px;">
+            ${badge} <b>${eq.name}</b> &nbsp;<small style="color:#aaa;">Media ${eq.ovr} OVR | ${rol} | ${sueldo}€/partido</small>
+        </button>`;
+    });
+
+    html += `</div>`;
+    document.getElementById('game-log').insertAdjacentHTML('beforeend', html);
+    scrollToBottom();
+}
+
+// =====================================================================
+// DRAFT NBA — NOCHE DEL DRAFT
+// =====================================================================
+function mostrarDraftNBA() {
+    // Calcular posición de pick según OVR y fama
+    let pick, tier;
+    if      (p.ovr >= 92 || p.fame >= 58) { pick = Math.floor(1  + Math.random() * 4);  tier = "🥇 Pick de Lotería TOP 5";    }
+    else if (p.ovr >= 87 || p.fame >= 50) { pick = Math.floor(5  + Math.random() * 9);  tier = "⭐ Lotería (Top 14)";          }
+    else if (p.ovr >= 83 || p.fame >= 42) { pick = Math.floor(14 + Math.random() * 16); tier = "📋 Primera Ronda";             }
+    else if (p.ovr >= 80)                 { pick = Math.floor(30 + Math.random() * 30); tier = "📄 Segunda Ronda";             }
+    else                                  { pick = 0; tier = "🤝 Agente Libre";          }
+
+    // Determinar rol según pick
+    let rol = pick === 0 ? "Suplente" : pick <= 5 ? "Estrella" : pick <= 20 ? "Titular" : "Suplente";
+
+    // Equipos interesados: los de peor record fichan picks altos (realista)
+    let nbaTeams = [...DB[2].teams];
+    // Ordenar por OVR desc para simular que los peores equipos tienen el pick
+    let interesados;
+    if (pick <= 5)       interesados = nbaTeams.sort((a,b) => a.ovr - b.ovr).slice(0, 5);  // equipos débiles fichan pick alto
+    else if (pick <= 14) interesados = nbaTeams.sort(() => 0.5 - Math.random()).slice(0, 5);
+    else                 interesados = nbaTeams.sort((a,b) => b.ovr - a.ovr).slice(0, 5);  // equipos fuertes para picks tardíos
+
+    // Elegir 3 de los interesados
+    let ofertas = interesados.slice(0, 3);
+    let sueldo  = rol === "Estrella" ? 400 : rol === "Titular" ? 200 : 150;
+
+    let pickLabel = pick === 0 ? "Sin pick — Agente Libre" : `Pick #${pick}`;
+
+    let html = `<div class="dialog-box log-entry" style="border-color:gold; background:rgba(255,215,0,0.06); padding:15px;">
+        <h3 style="color:gold; text-align:center; margin-bottom:8px; font-size:1.05em;">🏀 NOCHE DEL DRAFT NBA 🏀</h3>
+
+        <div style="background:rgba(0,0,0,0.4); border:1px solid #444; border-radius:6px; padding:10px; margin-bottom:12px; text-align:center;">
+            <p style="color:#aaa; font-size:0.6em; margin-bottom:3px; text-transform:uppercase; letter-spacing:1px;">Tu posición en el draft</p>
+            <p style="color:gold; font-size:1.4em; font-weight:bold; margin:0;">${pickLabel}</p>
+            <p style="color:#ccc; font-size:0.62em; margin-top:3px;">${tier}</p>
+        </div>
+
+        <p style="color:#ddd; font-size:0.68em; text-align:center; margin-bottom:12px;">
+            ${pick <= 5 ? `El Comisionado sube al escenario: <i>"Con el pick número <b style='color:gold;'>${pick}</b> del Draft NBA..."</i>` 
+                        : pick === 0 ? 'No has sido seleccionado en el draft. Tu agente negocia contratos de agente libre.' 
+                        : `Tu nombre suena en el Barclays Center. Pick #${pick}.`}
+        </p>
+
+        <p style="color:#aaa; font-size:0.65em; text-align:center; margin-bottom:10px;">Estas franquicias quieren fichar contigo:</p>`;
+
+    ofertas.forEach(eq => {
+        let badge = rol === "Estrella" ? "🌟" : rol === "Titular" ? "✅" : "🔋";
+        html += `<button onclick="ejecutarAscenso(2, '${eq.name}', '${rol}')" class="btn-main"
+            style="text-transform:none; font-size:0.72em; border-color:gold; color:#fff; margin-bottom:5px; text-align:left; padding:10px;">
+            ${badge} <b>${eq.name}</b> &nbsp;<small style="color:#aaa;">Media ${eq.ovr} OVR | ${rol} | ${sueldo}€/partido</small>
+        </button>`;
+    });
+
+    html += `</div>`;
+    document.getElementById('game-log').insertAdjacentHTML('beforeend', html);
+    scrollToBottom();
+}
+
+// =====================================================================
+// ALL-STAR WEEKEND (con rivales rotativos cada temporada)
+// =====================================================================
+
+// Pools de jugadores para los concursos
+const ASW_DUNKERS = [
+    { name: "Ja Morant",         skill: 93 },
+    { name: "Zach LaVine",       skill: 89 },
+    { name: "Aaron Gordon",      skill: 85 },
+    { name: "Anfernee Simons",   skill: 83 },
+    { name: "Obi Toppin",        skill: 82 },
+    { name: "Miles Bridges",     skill: 84 },
+    { name: "Scottie Barnes",    skill: 80 },
+    { name: "Jalen Green",       skill: 86 },
+    { name: "Mac McClung",       skill: 88 },
+    { name: "KJ Martin",         skill: 81 },
+    { name: "Kenyon Martin Jr.", skill: 79 },
+    { name: "Derrick Jones Jr.", skill: 83 },
+    { name: "Hamidou Diallo",    skill: 82 },
+    { name: "Dennis Smith Jr.",  skill: 80 },
+    { name: "Cassius Stanley",   skill: 78 }
+];
+
+const ASW_SHOOTERS = [
+    { name: "Stephen Curry",    skill: 99 },
+    { name: "Klay Thompson",    skill: 92 },
+    { name: "Damian Lillard",   skill: 90 },
+    { name: "Trae Young",       skill: 88 },
+    { name: "Luke Kennard",     skill: 87 },
+    { name: "Buddy Hield",      skill: 86 },
+    { name: "Tyler Herro",      skill: 85 },
+    { name: "Duncan Robinson",  skill: 86 },
+    { name: "Malik Monk",       skill: 83 },
+    { name: "Joe Harris",       skill: 85 },
+    { name: "Seth Curry",       skill: 87 },
+    { name: "Fred VanVleet",    skill: 84 },
+    { name: "Desmond Bane",     skill: 85 },
+    { name: "Mike Conley",      skill: 83 },
+    { name: "Anfernee Simons",  skill: 86 }
+];
+
+function getAswRivales() {
+    // Usar temporada + allStars como semilla para que cambien cada año
+    let seed = (p.season * 1103515245 + p.allStars * 6547) >>> 0;
+    const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    const shuffle = arr => {
+        let a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            let j = Math.floor(rand() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    };
+    return {
+        dunkers:  shuffle(ASW_DUNKERS).slice(0, 3),
+        shooters: shuffle(ASW_SHOOTERS).slice(0, 3)
+    };
+}
+
+function allStarWeekend() {
+    p.allStars++;
+    p.fame = Math.min(FAME_MAX, p.fame + 3);
+    p.aswDone = { mates: false, triples: false, game: false };
+
+    let rivals = getAswRivales();
+    escribirDialogo(`🌟 ALL-STAR WEEKEND — Temporada ${p.season}. En el concurso de mates: ${rivals.dunkers.map(r=>r.name).join(', ')}. En triples: ${rivals.shooters.map(r=>r.name).join(', ')}.`);
+    mostrarMenuAllStar();
+}
+
+function mostrarMenuAllStar() {
+    let done = p.aswDone;
+    let doneCount = [done.mates, done.triples, done.game].filter(Boolean).length;
+    let act = document.getElementById('actions');
+    act.style.display = 'flex';
+    act.innerHTML = `
+        <div style="color:gold; font-size:0.62em; text-align:center; margin-bottom:6px; font-weight:bold;">🌟 ALL-STAR WEEKEND — ${doneCount}/3 completados</div>
+        <button onclick="concursoMates()" class="btn-main" style="text-transform:none; font-size:0.75em; border-color:${done.mates?'#333':'gold'}; color:${done.mates?'#444':'gold'};" ${done.mates?'disabled':''}>
+            ${done.mates ? '✅ Mates completado' : '🏀 CONCURSO DE MATES'}
+        </button>
+        <button onclick="concursoTriples()" class="btn-main" style="text-transform:none; font-size:0.75em; border-color:${done.triples?'#333':'#0ff'}; color:${done.triples?'#444':'#0ff'};" ${done.triples?'disabled':''}>
+            ${done.triples ? '✅ Triples completado' : '🎯 CONCURSO DE TRIPLES'}
+        </button>
+        <button onclick="allStarGame()" class="btn-main" style="text-transform:none; font-size:0.75em; border-color:${done.game?'#333':'var(--success)'}; color:${done.game?'#444':'var(--success)'};" ${done.game?'disabled':''}>
+            ${done.game ? '✅ All-Star Game jugado' : '🏆 ALL-STAR GAME'}
+        </button>
+        ${doneCount === 3 ? '<button onclick="finalizarAllStar()" class="btn-main" style="border-color:gold; color:gold; margin-top:6px; font-size:0.75em;">⏭ CONTINUAR A LA SIGUIENTE TEMPORADA</button>' : ''}
+    `;
+}
+
+function concursoMates() {
+    let rivals = getAswRivales().dunkers;
+    let myRounds = [];
+    for (let i = 0; i < 3; i++) {
+        myRounds.push(Math.min(50, Math.max(18, Math.round((p.bandeja / 100) * 44 + (Math.random() * 14 - 5)))));
+    }
+    let myTotal = myRounds.reduce((a, b) => a + b, 0);
+    let rivalResults = rivals.map(r => {
+        let total = 0;
+        for (let i = 0; i < 3; i++) total += Math.min(50, Math.max(14, Math.round((r.skill / 100) * 44 + (Math.random() * 14 - 5))));
+        return { name: r.name, total, isMe: false };
+    });
+    let all = [{ name: '⭐ ' + p.name.substring(0, 10), total: myTotal, isMe: true }, ...rivalResults];
+    all.sort((a, b) => b.total - a.total);
+    let pos = all.findIndex(x => x.isMe) + 1;
+    let fameGain = pos === 1 ? 10 : pos === 2 ? 5 : 2;
+    p.fame = Math.min(FAME_MAX, p.fame + fameGain);
+    p.aswDone.mates = true;
+
+    let html = `<div class="dialog-box log-entry" style="border-color:gold; background:rgba(255,215,0,0.05);">
+        <h3 style="color:gold; text-align:center; margin-bottom:8px; font-size:0.9em;">🏀 CONCURSO DE MATES — RESULTADOS</h3>
+        <p style="font-size:0.6em; color:#aaa; text-align:center; margin-bottom:8px;">Tus rondas: ${myRounds.join(' / ')} pts</p>`;
+    all.forEach((r, i) => {
+        let col = r.isMe ? 'var(--success)' : i === 0 ? 'gold' : '#ccc';
+        html += `<div style="display:flex; justify-content:space-between; color:${col}; font-size:0.7em; margin-bottom:3px;">
+            <span>${i + 1}. ${r.name}</span><span style="font-family:monospace;">${r.total} pts</span></div>`;
+    });
+    html += `<p style="color:${pos===1?'gold':'#ccc'}; font-size:0.75em; text-align:center; margin-top:10px; font-weight:bold;">
+        ${pos===1?'🥇 ¡CAMPEÓN DE MATES!':pos===2?'🥈 2º puesto':'🥉 Participante'} | +${fameGain} Fama</p></div>`;
+    document.getElementById('game-log').insertAdjacentHTML('beforeend', html);
+    scrollToBottom();
+    mostrarMenuAllStar();
+}
+
+function concursoTriples() {
+    let rivals = getAswRivales().shooters;
+    const calcScore = skill => {
+        let s = 0;
+        for (let rack = 0; rack < 5; rack++) {
+            for (let ball = 0; ball < 5; ball++) { if (Math.random() < (skill / 100) * 0.82) s++; }
+            if (Math.random() < (skill / 100) * 0.70) s += 2;
+        }
+        return s;
+    };
+    let myScore = calcScore(p.tiro);
+    let rivalResults = rivals.map(r => ({ name: r.name, total: calcScore(r.skill), isMe: false }));
+    let all = [{ name: '⭐ ' + p.name.substring(0, 10), total: myScore, isMe: true }, ...rivalResults];
+    all.sort((a, b) => b.total - a.total);
+    let pos = all.findIndex(x => x.isMe) + 1;
+    let fameGain = pos === 1 ? 10 : pos === 2 ? 5 : 2;
+    p.fame = Math.min(FAME_MAX, p.fame + fameGain);
+    if (pos === 1) p.tiro = Math.min(99, p.tiro + 2);
+    p.aswDone.triples = true;
+
+    let html = `<div class="dialog-box log-entry" style="border-color:#0ff; background:rgba(0,255,255,0.03);">
+        <h3 style="color:#0ff; text-align:center; margin-bottom:8px; font-size:0.9em;">🎯 CONCURSO DE TRIPLES — RESULTADOS</h3>
+        <p style="font-size:0.6em; color:#aaa; text-align:center; margin-bottom:8px;">Máximo posible: 30 pts</p>`;
+    all.forEach((r, i) => {
+        let col = r.isMe ? 'var(--success)' : i === 0 ? '#0ff' : '#ccc';
+        html += `<div style="display:flex; justify-content:space-between; color:${col}; font-size:0.7em; margin-bottom:3px;">
+            <span>${i + 1}. ${r.name}</span><span style="font-family:monospace;">${r.total}/30</span></div>`;
+    });
+    html += `<p style="color:${pos===1?'#0ff':'#ccc'}; font-size:0.75em; text-align:center; margin-top:10px; font-weight:bold;">
+        ${pos===1?'🥇 ¡CAMPEÓN DE TRIPLES! +2 Tiro permanente':pos===2?'🥈 2º puesto':'🥉 Participante'} | +${fameGain} Fama</p></div>`;
+    document.getElementById('game-log').insertAdjacentHTML('beforeend', html);
+    scrollToBottom();
+    mostrarMenuAllStar();
+}
+
+function allStarGame() {
+    let myPts = Math.floor(8 + Math.random() * (p.ovr / 2.8));
+    let myAst = Math.floor(1 + Math.random() * 9);
+    let myReb = Math.floor(1 + Math.random() * 7);
+    let eastScore = Math.floor(138 + Math.random() * 52);
+    let westScore = Math.floor(138 + Math.random() * 52);
+    while (eastScore === westScore) westScore++;
+    let myTeam = Math.random() > 0.5 ? 'ESTE' : 'OESTE';
+    let myTeamScore = myTeam === 'ESTE' ? eastScore : westScore;
+    let rivalScore  = myTeam === 'ESTE' ? westScore : eastScore;
+    let gameWon = myTeamScore > rivalScore;
+    let isMVP = gameWon && myPts >= 25;
+    let fameGain = isMVP ? 15 : gameWon ? 5 : 2;
+    p.fame = Math.min(FAME_MAX, p.fame + fameGain);
+    p.aswDone.game = true;
+
+    let html = `<div class="dialog-box log-entry" style="border-color:var(--success); background:rgba(0,255,0,0.03);">
+        <h3 style="color:var(--success); text-align:center; margin-bottom:8px; font-size:0.9em;">🏆 ALL-STAR GAME</h3>
+        <p style="font-size:0.85em; text-align:center; color:#fff; font-weight:bold; margin-bottom:4px;">ESTE ${eastScore} — ${westScore} OESTE</p>
+        <p style="font-size:0.65em; text-align:center; color:#aaa; margin-bottom:10px;">Equipo ${myTeam}: ${gameWon ? '✅ Victoria' : '❌ Derrota'}</p>
+        <p style="font-size:0.72em; text-align:center; color:var(--success);">Tus stats: <b>${myPts} PTS</b> | ${myAst} AST | ${myReb} REB</p>
+        <p style="color:${isMVP?'gold':'#ccc'}; font-size:0.78em; text-align:center; margin-top:10px; font-weight:bold;">
+            ${isMVP ? '🌟 ¡MVP DEL ALL-STAR GAME!' : gameWon ? 'Victoria con tu equipo' : 'Buena actuación'} | +${fameGain} Fama
+        </p></div>`;
+    document.getElementById('game-log').insertAdjacentHTML('beforeend', html);
+    scrollToBottom();
+    mostrarMenuAllStar();
+}
+
+function finalizarAllStar() {
+    p.aswDone = null;
+    escribirDialogo('✅ All-Star Weekend finalizado. ¡Vuelve a la temporada regular!');
+    renderMenu();
 }
