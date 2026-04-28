@@ -133,7 +133,7 @@ function cargarPartida() {
 }
 
 function iniciarCarrera() {
-    alert("🏀 ¡BIENVENIDO A LEGADO: ECOS DE GRANDEZA! 🏀\n\n📖 JUGABILIDAD:\n- Tienes 17 temporadas para convertirte en el G.O.A.T. (Mejor de la historia).\n- En la cancha, elige tu acción y el acierto dependerá de tus atributos y de la defensa rival.\n- ¡Cuidado! En la liga Junior es más difícil ganar partidos y destacar. Entrena duro.\n- La Química de tu equipo es vital. Si cambias de equipo (Traspaso o Ascenso), la química se reiniciará a 50.\n- Tu gran rival no te pondrá las cosas fáciles. Te avisaremos cada vez que fiche por un nuevo equipo.\n\n¡Forja tu legado y llega a lo más alto!");
+    alert("🏀 ¡BIENVENIDO A LEGADO: ECOS DE GRANDEZA! 🏀\n\n📖 JUGABILIDAD:\n- Tienes 17 temporadas para convertirte en el G.O.A.T. (Mejor de la historia).\n- En la cancha, elige tu acción y el acierto dependerá de tus atributos y de la defensa rival.\n- En Liga Junior destacarás poco a poco. Entrena duro para llamar la atención.\n- La Química de tu equipo es vital. Si cambias de equipo, la química se reiniciará a 50.\n- Tu gran rival no te pondrá las cosas fáciles. Te avisaremos cada vez que fiche por un nuevo equipo.\n\n¡Forja tu legado y llega a lo más alto!");
 
     p.name = document.getElementById('in-name').value || "Jugador";
     p.rivalName = document.getElementById('in-rival-name').value || "Riki";
@@ -186,14 +186,26 @@ function prepararLiga() {
             conf = (i < phaseDB.length / 2) ? 1 : 2; // ACB/NBA en Este y Oeste
         }
 
+        let defaultRoster = t.roster ? JSON.parse(JSON.stringify(t.roster)) : [
+            {n: t.star||"Estrella", p:"B", o:t.ovr+3},
+            {n: "Jugador 2", p:"E", o:t.ovr},
+            {n: "Jugador 3", p:"A", o:t.ovr-1},
+            {n: "Jugador 4", p:"AP", o:t.ovr-1},
+            {n: "Jugador 5", p:"P", o:t.ovr}
+        ];
+        
+        // Inicializar stats de la plantilla a cero
+        defaultRoster.forEach(r => { r.pts=0; r.reb=0; r.ast=0; });
+
         let equipo = { 
             name: t.name, 
             ovr: t.ovr, 
-            star: t.star || "Estrella", 
-            starOvr: t.roster ? t.roster[0].o : t.ovr + 3,
+            star: defaultRoster[0].n, 
+            starOvr: defaultRoster[0].o,
             starPts: 0, 
             v: 0, d: 0, pts: 0, 
             conf: conf, 
+            roster: defaultRoster,
             isPlayer: (t.name === p.team) 
         };
         if (equipo.isPlayer) p.teamData = equipo;
@@ -240,15 +252,61 @@ function renderMenu() {
             <span>QUÍMICA: ${p.chem}%</span>
         </div>
         <button onclick="play()" class="btn-main" style="${p.isPlayoffs ? 'border-color: gold; color: gold;' : ''}">${btnText}</button>
-        <button onclick="train()" class="btn-main">▶ ENTRENAR (${costMod}€)</button>
-        <button onclick="renderVidaPrivada()" class="btn-main" style="border-color: gold; color: gold;">💵 VIDA PRIVADA</button>
-        <button onclick="pedirTraspaso()" class="btn-main btn-trade" ${p.isPlayoffs ? 'disabled' : ''}>🔄 TRASPASO</button>
+        <div style="display:flex; gap:5px;">
+            <button onclick="train()" class="btn-main" style="flex:1;">▶ ENTRENAR (${costMod}€)</button>
+            <button onclick="mostrarPremios()" class="btn-main" style="flex:1; border-color:#0ff; color:#0ff;">🏆 PREMIOS</button>
+        </div>
+        <div style="display:flex; gap:5px;">
+            <button onclick="renderVidaPrivada()" class="btn-main" style="flex:1; border-color: gold; color: gold;">💵 VIDA PRIVADA</button>
+            <button onclick="pedirTraspaso()" class="btn-main btn-trade" style="flex:1;" ${p.isPlayoffs ? 'disabled' : ''}>🔄 TRASPASO</button>
+        </div>
         <div style="display:flex; gap:5px;">
             <button onclick="abrirPerfil()" class="btn-main" style="flex:1; border-color: #555; color: #ccc; margin:0;">📊 PERFIL / GOAT</button>
             <button onclick="abrirEquipos()" class="btn-main" style="flex:1; border-color: #555; color: #ccc; margin:0;">⛹️ EQUIPOS</button>
         </div>
     `;
     guardarPartida();
+}
+
+function mostrarPremios() {
+    let m = Math.max(1, p.stats.matches);
+    let miPPP = (p.stats.pts / m);
+    let candidatos = [{name: p.name.substring(0,12), ppp: miPPP, v: p.teamData.v, ovr: p.ovr, def: p.def, isMe: true}];
+    
+    leagueTable.forEach(t => {
+        let mAI = Math.max(1, t.v + t.d);
+        if(!t.isPlayer) {
+            let ppp = t.starPts / mAI;
+            candidatos.push({name: t.star.substring(0,12), ppp: ppp, v: t.v, ovr: t.starOvr, def: t.starOvr - 4, isMe: false});
+        } else if (t.roster && t.roster.length > 0) {
+            let star = t.roster[0];
+            if (star.n !== p.name && star.n !== p.rivalName) {
+                candidatos.push({name: star.n.substring(0,12), ppp: star.pts/mAI, v: t.v, ovr: star.o, def: star.o - 4, isMe: false});
+            }
+        }
+    });
+
+    let mvpList = [...candidatos].sort((a,b) => (b.ppp*1.5 + b.v) - (a.ppp*1.5 + a.v)).slice(0,3);
+    let dpoyList = [...candidatos].sort((a,b) => (b.def + b.v*0.5) - (a.def + a.v*0.5)).slice(0,3);
+    
+    let html = `<div class="dialog-box log-entry" style="border-color:#0ff; padding: 15px;">
+        <h3 style="color:#0ff; text-align:center; margin-bottom:15px; font-size:0.9em;">🏆 CARRERA POR LOS PREMIOS 🏆</h3>
+        
+        <div style="margin-bottom:15px; font-size:0.7em;">
+            <b style="color:var(--accent); font-size:1.1em;">M.V.P. (Temp. Regular)</b><br><br>
+            <span style="color:gold;">1. ${mvpList[0].name}</span> <span style="color:#ccc;">(${mvpList[0].ppp.toFixed(1)}p, ${mvpList[0].v}V)</span><br>
+            2. ${mvpList[1].name} <span style="color:#ccc;">(${mvpList[1].ppp.toFixed(1)}p, ${mvpList[1].v}V)</span><br>
+            3. ${mvpList[2].name} <span style="color:#ccc;">(${mvpList[2].ppp.toFixed(1)}p, ${mvpList[2].v}V)</span>
+        </div>
+        
+        <div style="font-size:0.7em;">
+            <b style="color:var(--accent); font-size:1.1em;">DEFENSOR DEL AÑO</b><br><br>
+            <span style="color:gold;">1. ${dpoyList[0].name}</span><br>
+            2. ${dpoyList[1].name}
+        </div>
+    </div>`;
+    document.getElementById('game-log').insertAdjacentHTML('beforeend', html);
+    scrollToBottom();
 }
 
 function renderVidaPrivada() {
@@ -309,7 +367,7 @@ function ejecutarGasto(tipo) {
 }
 
 // =====================================================================
-// 5. MOTOR DE PARTIDO Y DIFICULTAD
+// 5. MOTOR DE PARTIDO Y ESTADÍSTICAS COMPAÑEROS
 // =====================================================================
 function play() {
     evalRole(); updateUI();
@@ -322,12 +380,6 @@ function play() {
     let diff = getMyTeamOvr() - match.rival.ovr; 
     match.finalBaseMyScore = 70 + Math.floor(diff * 0.3) + Math.floor(Math.random() * 8);
     match.finalBaseRivScore = 70 - Math.floor(diff * 0.3) + Math.floor(Math.random() * 8); 
-    
-    // AUMENTO DE DIFICULTAD EN JUNIOR: Resta puntos a tu base y suma al rival
-    if (p.fase === 0) {
-        match.finalBaseMyScore -= 6;
-        match.finalBaseRivScore += 6;
-    }
 
     match.myScore = 0; match.rivScore = 0;
     match.numPlays = p.role === "Suplente" ? 3 : (p.role === "Titular" ? 5 : 6);
@@ -356,9 +408,6 @@ function updateScoreboard() {
 function getProbabilidad(accion) {
     let diffOvr = p.ovr - match.rival.ovr;
     let mod = diffOvr; 
-    
-    // AUMENTO DE DIFICULTAD EN JUNIOR: Es más difícil acertar las acciones
-    if (p.fase === 0) mod -= 6; 
     
     let baseProb = (accion==='m')?p.fisico:(accion==='b')?p.bandeja:(accion==='t')?p.tiro:(accion==='a')?p.manejo:(accion==='ro')?p.def-5:(accion==='ta')?p.def:Math.max(p.fisico,p.def)+10;
     
@@ -427,6 +476,20 @@ function res(tipo, id) {
     match.j++; scrollToBottom(); setTimeout(next, 1500);
 }
 
+// Función global para repartir stats reales a los compañeros de equipo
+function distributeStats(roster, totalPts) {
+    if(!roster || roster.length === 0) return;
+    let totalOvr = roster.reduce((s, j) => s + j.o, 0);
+    roster.forEach((jug, idx) => {
+        let weight = jug.o / totalOvr;
+        let mult = idx === 0 ? 1.5 : 0.8; 
+        let pts = Math.floor(totalPts * weight * mult * (0.8 + Math.random()*0.4));
+        jug.pts += pts;
+        jug.reb += Math.floor((jug.o/15) * (Math.random()*0.5 + 0.5));
+        jug.ast += Math.floor((jug.o/20) * (Math.random()*0.5 + 0.5));
+    });
+}
+
 function finish() {
     document.getElementById('live-scoreboard').style.display = 'none';
     let minMult = p.role === "Estrella" ? 2.0 : (p.role === "Titular" ? 1.5 : 0.8); 
@@ -452,16 +515,22 @@ function finish() {
         if(win) { p.teamData.v++; match.rival.d++; } else { p.teamData.d++; match.rival.v++; }
         match.rival.pts += match.rivScore; 
         
-        // Simulación resto de equipos
+        // Asignamos stats reales al resto de tu plantilla
+        let myTeamRestPts = Math.max(0, match.myScore - gamePts);
+        distributeStats(p.teamData.roster, myTeamRestPts);
+        
+        // Asignamos stats reales al equipo rival
+        distributeStats(match.rival.roster, match.rivScore);
+        match.rival.starPts = match.rival.roster[0].pts; // Estrella rival MVP Update
+        
+        // Simulación del resto de equipos en la liga
         leagueTable.forEach(r => { 
-            if(!r.isPlayer) { 
-                if (r.name !== match.rival.name) {
-                    r.pts += Math.floor(75 + Math.random()*20); 
-                    if(Math.random() > 0.5) r.v++; else r.d++; 
-                }
-                let starBase = Math.floor(r.starOvr / 6) + 2; 
-                let randomPts = Math.floor(Math.random() * 12);
-                r.starPts += (starBase + randomPts);
+            if(!r.isPlayer && r.name !== match.rival.name) { 
+                let simScore = Math.floor(70 + Math.random()*25); 
+                r.pts += simScore; 
+                if(Math.random() > 0.5) r.v++; else r.d++; 
+                distributeStats(r.roster, simScore);
+                r.starPts = r.roster[0].pts;
             }
         });
     }
@@ -626,25 +695,20 @@ function ejecutarAscenso(faseTarget, teamName, rolTarget) {
     p.history[claveLiga].pts += p.stats.pts; p.history[claveLiga].ast += p.stats.ast; p.history[claveLiga].reb += p.stats.reb;
     p.history[claveLiga].rob += p.stats.rob; p.history[claveLiga].tap += p.stats.tap; p.history[claveLiga].matches += p.stats.matches;
     
-    // Resetear stats limpiamente para la nueva temporada
     p.stats.pts=0; p.stats.ast=0; p.stats.reb=0; p.stats.rob=0; p.stats.tap=0; p.stats.tcAttempt=0; p.stats.tcMake=0; p.stats.t3Attempt=0; p.stats.t3Make=0; p.stats.matches=0;
 
     let oldFase = p.fase;
     let oldTeam = p.team;
 
     p.team = teamName; 
-    
-    // RESET DE QUÍMICA SI SE CAMBIA DE EQUIPO
     if (oldTeam !== teamName) p.chem = 50; 
 
     p.fase = faseTarget; p.role = rolTarget; p.sMatches = 0; p.season++; p.isPlayoffs = false; p.playoffStage = ""; 
-    
     if (oldFase !== faseTarget) p.rivalTeam = ""; 
     
     prepararLiga(); updateUI(); document.getElementById('game-log').innerHTML = '';
     escribirDialogo(`NOTICIA:<br><br>Oficial. ${p.name} jugará en ${p.team}. ¡A por la Temporada ${p.season} de 17!`);
     
-    // NOTIFICACIÓN DE RIVAL AL ASCENDER O CAMBIAR
     if (oldFase !== faseTarget) {
         escribirDialogo(`🚨 ATENCIÓN: Tu rival ${p.rivalName} ha fichado por ${p.rivalTeam}.`);
     }
@@ -653,7 +717,7 @@ function ejecutarAscenso(faseTarget, teamName, rolTarget) {
 }
 
 // =====================================================================
-// 7. TRASPASOS Y UI MODALS
+// 7. TRASPASOS Y UI MODALS (SIN REINICIAR LA LIGA)
 // =====================================================================
 function pedirTraspaso() {
     let options = DB[p.fase].teams.filter(t => t.name !== p.team);
@@ -670,9 +734,15 @@ function ejecutarTraspaso() {
     
     if(p.ovr >= targetObj.ovr - 5) {
         p.team = targetName;
-        p.chem = 50; // RESET DE QUÍMICA A 50 AL TRASPASAR
-        prepararLiga(); evalRole(); updateUI(); 
-        escribirDialogo(`🚨 BOMBAZO: Traspasado a ${targetName}. Tu química se reinicia a 50.`); 
+        p.chem = 50; 
+        
+        // NO llamamos a prepararLiga(), solo cambiamos el flag de isPlayer para no resetear estadísticas.
+        leagueTable.forEach(t => t.isPlayer = false);
+        p.teamData = leagueTable.find(t => t.name === targetName);
+        if(p.teamData) p.teamData.isPlayer = true;
+        
+        evalRole(); updateUI(); 
+        escribirDialogo(`🚨 BOMBAZO: Has sido traspasado a ${targetName}. Tu química se reinicia a 50 pero la liga continúa.`); 
         renderMenu();
     } else escribirDialogo(`AGENTE:<br>El GM de ${targetName} dice que no tienes nivel para jugar allí.`);
 }
@@ -690,7 +760,9 @@ function mostrarEquipoInfo() {
     let realTeamObj = DB[p.fase].teams.find(x => x.name === tName);
     let equipoLiga = leagueTable.find(t => t.name === tName);
     let matchesPlayed = p.stats.matches || 0;
-    let m = matchesPlayed === 0 ? 1 : matchesPlayed;
+    
+    let mAI = Math.max(1, equipoLiga.v + equipoLiga.d);
+    let m = (tName === p.team) ? Math.max(1, matchesPlayed) : mAI;
     
     let html = `<h3 style="color:var(--accent); margin-bottom:10px;">${tName.toUpperCase()} - <span style="color:#fff;">MEDIA: ${realTeamObj.ovr}</span></h3><hr style="border-color:#333; margin-bottom:15px;">`;
     
@@ -701,23 +773,17 @@ function mostrarEquipoInfo() {
         html += `<p style="color:var(--success); margin-bottom: 5px;">🌟 <b>${p.name} (TÚ)</b> - ${p.pos} | <b>${p.ovr} OVR</b> <span style="float:right; font-size:0.9em; color:#fff;">${ppp}p ${rpp}r ${app}a</span></p>`;
     }
     
-    if(realTeamObj.roster) {
-        let teamPPP = matchesPlayed === 0 ? 0 : (equipoLiga ? equipoLiga.pts / m : 0);
-        let totalOvr = realTeamObj.roster.reduce((sum, jug) => sum + jug.o, 0);
-        
-        realTeamObj.roster.forEach(jug => {
-            let isStar = (jug.n === realTeamObj.star || jug.n === p.rivalName);
+    if(equipoLiga && equipoLiga.roster) {
+        equipoLiga.roster.forEach(jug => {
+            let isStar = (jug.n === equipoLiga.star || jug.n === p.rivalName);
             let icon = ["B","E","A","AP","P"].includes(jug.p) ? "👤" : "🔄";
             let color = isStar ? "color:var(--accent);" : "color:#ccc;";
-            let jugPPP = 0, jugRPP = 0, jugAPP = 0;
-            if (matchesPlayed > 0) {
-                let weight = jug.o / totalOvr;
-                jugPPP = teamPPP * weight * (isStar ? 1.5 : 0.9);
-                let pseudoRandom = (jug.n.length % 5) / 10; 
-                if (jug.p === 'B' || jug.p === 'E') jugAPP = (jug.o / 15) * (0.8 + pseudoRandom); else jugAPP = (jug.o / 30) * (0.8 + pseudoRandom);
-                if (jug.p === 'P' || jug.p === 'AP') jugRPP = (jug.o / 10) * (0.8 + pseudoRandom); else jugRPP = (jug.o / 25) * (0.8 + pseudoRandom);
-            }
-            html += `<p style="${color} margin-bottom:5px; border-bottom:1px dashed #222; padding-bottom:5px;">${icon} ${jug.n} (${posMap[jug.p] || "S"}) | <b style="color:#fff;">${jug.o || 70} OVR</b> <span style="float:right; font-size:0.9em; color:#fff;">${jugPPP.toFixed(1)}p ${jugRPP.toFixed(1)}r ${jugAPP.toFixed(1)}a</span></p>`;
+            
+            let jugPPP = (jug.pts / mAI).toFixed(1);
+            let jugRPP = (jug.reb / mAI).toFixed(1);
+            let jugAPP = (jug.ast / mAI).toFixed(1);
+
+            html += `<p style="${color} margin-bottom:5px; border-bottom:1px dashed #222; padding-bottom:5px;">${icon} ${jug.n} (${posMap[jug.p] || "S"}) | <b style="color:#fff;">${jug.o || 70} OVR</b> <span style="float:right; font-size:0.9em; color:#fff;">${jugPPP}p ${jugRPP}r ${jugAPP}a</span></p>`;
         });
     } else html += `<p style="color:#888;">Plantilla no disponible.</p>`;
     document.getElementById('team-roster-div').innerHTML = html;
@@ -777,7 +843,6 @@ function abrirPerfil() {
     `;
     if(e('goat-checklist')) e('goat-checklist').innerHTML = cl;
 
-    // ESTADÍSTICAS PROMEDIADAS EN EL PERFIL
     let getAvgs = (obj) => {
         if(obj.matches === 0) return `0.0p 0.0a 0.0r 0.0ro 0.0t`;
         return `${(obj.pts/obj.matches).toFixed(1)}p ${(obj.ast/obj.matches).toFixed(1)}a ${(obj.reb/obj.matches).toFixed(1)}r ${(obj.rob/obj.matches).toFixed(1)}ro ${(obj.tap/obj.matches).toFixed(1)}t`;
