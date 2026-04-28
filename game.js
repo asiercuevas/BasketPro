@@ -381,6 +381,12 @@ function play() {
     match.finalBaseMyScore = 70 + Math.floor(diff * 0.3) + Math.floor(Math.random() * 8);
     match.finalBaseRivScore = 70 - Math.floor(diff * 0.3) + Math.floor(Math.random() * 8); 
 
+    // AJUSTE DE DIFICULTAD EN JUNIOR: Un poco más fácil, pero equilibrado
+    if (p.fase === 0) {
+        match.finalBaseMyScore += 2;
+        match.finalBaseRivScore -= 2;
+    }
+
     match.myScore = 0; match.rivScore = 0;
     match.numPlays = p.role === "Suplente" ? 3 : (p.role === "Titular" ? 5 : 6);
     match.pool = ["ATAQUE", "ATAQUE", "ATAQUE", "DEFENSA", "DEFENSA", "ATAQUE"].sort(() => Math.random() - 0.5).slice(0, match.numPlays);
@@ -409,6 +415,9 @@ function getProbabilidad(accion) {
     let diffOvr = p.ovr - match.rival.ovr;
     let mod = diffOvr; 
     
+    // AJUSTE DE DIFICULTAD EN JUNIOR: Ligero bonus de acierto
+    if (p.fase === 0) mod += 2; 
+
     let baseProb = (accion==='m')?p.fisico:(accion==='b')?p.bandeja:(accion==='t')?p.tiro:(accion==='a')?p.manejo:(accion==='ro')?p.def-5:(accion==='ta')?p.def:Math.max(p.fisico,p.def)+10;
     
     let proNerf = p.fase === 1 ? 25 : (p.fase === 2 ? 20 : 0);
