@@ -281,66 +281,90 @@ function mostrarPremios() {
     let m = Math.max(1, p.stats.matches);
     let allPlayers = [];
     
-    // Meter al jugador
+    // 1. Añadir al Jugador (Tú) con stats actuales
     allPlayers.push({
-        name: p.name.substring(0,12), team: p.team, isMe: true, role: p.role, v: p.teamData.v, ovr: p.ovr, def: p.def,
-        ppp: p.stats.pts/m, rpp: p.stats.reb/m, app: p.stats.ast/m, ropp: p.stats.rob/m, tapp: p.stats.tap/m
+        name: p.name.substring(0,12), 
+        team: p.team, 
+        isMe: true, 
+        role: p.role, 
+        v: p.teamData.v, 
+        ovr: p.ovr, 
+        def: p.def,
+        ppp: p.stats.pts / m, 
+        rpp: p.stats.reb / m, 
+        app: p.stats.ast / m, 
+        ropp: p.stats.rob / m, 
+        tapp: p.stats.tap / m
     });
 
-    // Meter a la IA
+    // 2. Añadir a los jugadores de la IA de todos los equipos
     leagueTable.forEach(t => {
         let mAI = Math.max(1, t.v + t.d);
         if(t.roster) {
             t.roster.forEach((jug, idx) => {
-                if (t.isPlayer && jug.n === p.name) return; // Evitar clon tuyo
-                if (jug.n.includes("Jugador") || jug.n === "Veterano" || jug.n === "Sexto") return; // Quitar rellenos
+                if (t.isPlayer && jug.n === p.name) return; 
+                if (jug.n.includes("Jugador") || jug.n === "Sexto" || jug.n === "Veterano") return; 
                 
                 allPlayers.push({
-                    name: jug.n.substring(0,12), team: t.name, isMe: false, role: (idx >= 5 || jug.p === "6M") ? "Suplente" : "Titular", v: t.v, ovr: jug.o, def: jug.o - 4,
-                    ppp: jug.pts/mAI, rpp: jug.reb/mAI, app: jug.ast/mAI, ropp: jug.rob/mAI, tapp: jug.tap/mAI
+                    name: jug.n.substring(0,12), 
+                    team: t.name, 
+                    isMe: false, 
+                    role: (idx >= 5 || jug.p === "6M") ? "Suplente" : "Titular", 
+                    v: t.v, 
+                    ovr: jug.o, 
+                    def: jug.o - 4,
+                    ppp: jug.pts / mAI, 
+                    rpp: jug.reb / mAI, 
+                    app: jug.ast / mAI, 
+                    ropp: jug.rob / mAI, 
+                    tapp: jug.tap / mAI
                 });
             });
         }
     });
 
-    // Calcular formulas por estadísticas reales
+    // 3. Calcular puntuaciones de premios
     allPlayers.forEach(x => {
         x.mvpScore = (x.ppp * 1.0) + (x.rpp * 1.2) + (x.app * 1.5) + (x.ropp * 2.0) + (x.tapp * 2.0) + (x.v * 0.5);
-        x.dpoyScore = (x.ropp * 4.0) + (x.tapp * 4.0) + (x.def * 0.1) + (x.rpp * 0.5) + (x.v * 0.2); // El DPOY requiere MUCHOS robos y tapones
+        x.dpoyScore = (x.ropp * 4.0) + (x.tapp * 4.0) + (x.def * 0.1) + (x.rpp * 0.5) + (x.v * 0.2);
     });
 
-    let mvpList = [...allPlayers].sort((a,b) => b.mvpScore - a.mvpScore).slice(0,3);
-    let dpoyList = [...allPlayers].sort((a,b) => b.dpoyScore - a.dpoyScore).slice(0,3);
-    let sixthList = [...allPlayers].filter(x => x.role === "Suplente").sort((a,b) => b.mvpScore - a.mvpScore).slice(0,3);
-    let rookieList = [...allPlayers].filter(x => x.ovr < 80 && x.ovr >= 70).sort((a,b) => b.mvpScore - a.mvpScore).slice(0,3);
+    // 4. Generar el Top 5 por categoría
+    const getTop5 = (arr, key) => [...arr].sort((a, b) => b[key] - a[key]).slice(0, 5);
 
-    let html = `<div class="dialog-box log-entry" style="border-color:#0ff; padding: 15px;">
-        <h3 style="color:#0ff; text-align:center; margin-bottom:15px; font-size:0.9em;">🏆 CARRERA POR LOS PREMIOS 🏆</h3>
-        
-        <div style="margin-bottom:15px; font-size:0.7em;">
-            <b style="color:var(--accent); font-size:1.1em;">M.V.P.</b><br>
-            <span style="color:gold;">1. ${mvpList[0].name}</span> <span style="color:#ccc;">(${mvpList[0].ppp.toFixed(1)}p ${mvpList[0].rpp.toFixed(1)}r ${mvpList[0].app.toFixed(1)}a)</span><br>
-            2. ${mvpList[1].name}<br>3. ${mvpList[2].name}
-        </div>
-        
-        <div style="margin-bottom:15px; font-size:0.7em;">
-            <b style="color:var(--accent); font-size:1.1em;">DEFENSOR DEL AÑO</b><br>
-            <span style="color:gold;">1. ${dpoyList[0].name}</span> <span style="color:#ccc;">(${dpoyList[0].ropp.toFixed(1)}ro ${dpoyList[0].tapp.toFixed(1)}ta)</span><br>
-            2. ${dpoyList[1].name}
-        </div>
+    let mvpList = getTop5(allPlayers, 'mvpScore');
+    let dpoyList = getTop5(allPlayers, 'dpoyScore');
+    let sixthList = getTop5(allPlayers.filter(x => x.role === "Suplente"), 'mvpScore');
+    let rookieList = getTop5(allPlayers.filter(x => x.ovr < 80 && x.ovr >= 70), 'mvpScore');
 
-        <div style="margin-bottom:15px; font-size:0.7em;">
-            <b style="color:var(--accent); font-size:1.1em;">6º HOMBRE DEL AÑO</b><br>
-            <span style="color:gold;">1. ${sixthList.length>0 ? sixthList[0].name : "N/A"}</span> <span style="color:#ccc;">(${sixthList.length>0 ? sixthList[0].ppp.toFixed(1) : 0}p)</span><br>
-            2. ${sixthList.length>1 ? sixthList[1].name : "N/A"}
-        </div>
+    // 5. Construir HTML
+    let html = `<div class="dialog-box log-entry" style="border-color:#0ff; padding: 15px; background: rgba(0,0,0,0.8);">
+        <h3 style="color:#0ff; text-align:center; margin-bottom:15px; font-size:1em;">🏆 CARRERA POR LOS PREMIOS (TOP 5) 🏆</h3>`;
 
-        <div style="font-size:0.7em;">
-            <b style="color:var(--accent); font-size:1.1em;">ROOKIE DEL AÑO</b><br>
-            <span style="color:gold;">1. ${rookieList.length>0 ? rookieList[0].name : "N/A"}</span> <span style="color:#ccc;">(${rookieList.length>0 ? rookieList[0].ppp.toFixed(1) : 0}p)</span><br>
-            2. ${rookieList.length>1 ? rookieList[1].name : "N/A"}
-        </div>
-    </div>`;
+    const renderList = (titulo, list, statType) => {
+        let section = `<div style="margin-bottom:18px; font-size:0.75em;">
+            <b style="color:var(--accent); font-size:1.1em; border-bottom:1px solid #444; display:block; margin-bottom:5px;">${titulo}</b>`;
+        list.forEach((x, i) => {
+            let color = x.isMe ? "var(--success)" : (i === 0 ? "gold" : "#eee");
+            let statsText = "";
+            if(statType === 'mvp') statsText = `${x.ppp.toFixed(1)}p ${x.app.toFixed(1)}a ${x.rpp.toFixed(1)}r`;
+            if(statType === 'def') statsText = `${x.ropp.toFixed(1)}ro ${x.tapp.toFixed(1)}ta`;
+            
+            section += `<div style="display:flex; justify-content:space-between; color:${color}; margin-bottom:2px;">
+                <span>${i+1}. ${x.isMe ? '⭐ ' : ''}${x.name} <small style="color:#888;">(${x.team})</small></span>
+                <span style="font-family:monospace;">${statsText}</span>
+            </div>`;
+        });
+        return section + `</div>`;
+    };
+
+    html += renderList("M.V.P. (Most Valuable Player)", mvpList, 'mvp');
+    html += renderList("DEFENSOR DEL AÑO (DPOY)", dpoyList, 'def');
+    html += renderList("6º HOMBRE DEL AÑO", sixthList, 'mvp');
+    html += renderList("ROOKIE DEL AÑO", rookieList, 'mvp');
+
+    html += `</div>`;
+    
     document.getElementById('game-log').insertAdjacentHTML('beforeend', html);
     scrollToBottom();
 }
@@ -608,6 +632,7 @@ function finish() {
         <p style="font-size:0.55em; color:gold; margin-top:5px;">Fama: ${p.fame.toFixed(1)} | Química: ${p.chem}%</p>
     </div>`;
     document.getElementById('game-log').insertAdjacentHTML('beforeend', endHtml); scrollToBottom(); updateUI();
+    if(typeof StorySystem !== 'undefined') StorySystem.checkEvents();
 
     let numEquiposConf = leagueTable.filter(t => t.conf === p.teamData.conf).length;
     let partidosTemporada = (p.fase === 0) ? (numEquiposConf - 1) * 2 : (leagueTable.length - 1);
