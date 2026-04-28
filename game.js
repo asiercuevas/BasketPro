@@ -381,7 +381,7 @@ function play() {
     match.finalBaseMyScore = 70 + Math.floor(diff * 0.3) + Math.floor(Math.random() * 8);
     match.finalBaseRivScore = 70 - Math.floor(diff * 0.3) + Math.floor(Math.random() * 8); 
 
-    // AJUSTE DE DIFICULTAD EN JUNIOR: Un poco más fácil, pero equilibrado
+    // AJUSTE DE DIFICULTAD EN JUNIOR
     if (p.fase === 0) {
         match.finalBaseMyScore += 2;
         match.finalBaseRivScore -= 2;
@@ -415,12 +415,13 @@ function getProbabilidad(accion) {
     let diffOvr = p.ovr - match.rival.ovr;
     let mod = diffOvr; 
     
-    // AJUSTE DE DIFICULTAD EN JUNIOR: Ligero bonus de acierto
+    // AJUSTE DE DIFICULTAD EN JUNIOR
     if (p.fase === 0) mod += 2; 
 
     let baseProb = (accion==='m')?p.fisico:(accion==='b')?p.bandeja:(accion==='t')?p.tiro:(accion==='a')?p.manejo:(accion==='ro')?p.def-5:(accion==='ta')?p.def:Math.max(p.fisico,p.def)+10;
     
-    let proNerf = p.fase === 1 ? 25 : (p.fase === 2 ? 20 : 0);
+    // AUMENTO DEL +10% EN ACIERTO PARA LIGAS PRO (Reducido el nerfeo de 25/20 a 15/10)
+    let proNerf = p.fase === 1 ? 15 : (p.fase === 2 ? 10 : 0); 
     
     let chemMod = 0;
     if (p.chem < 40) chemMod = -5;
@@ -554,7 +555,8 @@ function finish() {
     if (p.stats.streak15 >= 3) { fameChange += 3; p.stats.streak15 = 0; escribirDialogo("🔥 ESTÁS ON FIRE: Bono +3 Fama por racha (+15pts en 3 partidos)."); }
 
     if (win) {
-        fameChange += 0.5; p.chem += 2; p.stats.lossStreak = 0;
+        fameChange += 1; // Aquí está el FAMA BASE +1 (antes 0.5)
+        p.chem += 2; p.stats.lossStreak = 0;
         if (match.rival.ovr > getMyTeamOvr()) fameChange += 1; 
     } else {
         fameChange -= 0.5; p.chem -= 1; p.stats.lossStreak++;
