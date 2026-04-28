@@ -325,8 +325,8 @@ function mostrarPremios() {
 
     // 3. Calcular puntuaciones de premios
     allPlayers.forEach(x => {
-        x.mvpScore = (x.ppp * 1.0) + (x.rpp * 1.2) + (x.app * 1.5) + (x.ropp * 2.0) + (x.tapp * 2.0) + (x.v * 0.5);
-        x.dpoyScore = (x.ropp * 4.0) + (x.tapp * 4.0) + (x.def * 0.1) + (x.rpp * 0.5) + (x.v * 0.2);
+        x.mvpScore = (x.ppp * 3.0) + (x.app * 2.0) + (x.rpp * 1.5);
+        x.dpoyScore = (x.ropp * 4.0) + (x.tapp * 3.0) + (x.rpp * 0.5);
     });
 
     // 4. Generar el Top 5 por categoría
