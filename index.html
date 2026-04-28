@@ -7,30 +7,30 @@
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body style="background-color: #000; margin: 0; padding: 0;">
 
-<div id="game-container" style="position: relative;">
+<div id="game-container" style="position: relative; background-color: #000; min-height: 100vh; color: white;">
     
-    <div id="setup-screen" class="dialog-box" style="margin: 20px; text-align: center;">
+    <div id="setup-screen" class="dialog-box" style="margin: 20px; text-align: center; background-color: #000; border: 2px solid #333;">
         <h1 class="pixel-title" style="color: gold; margin-bottom: 10px; font-size: 1.2em;">LEGADO:<br>Ecos de Grandeza</h1>
         <p style="font-size: 0.6em; color: #aaa; margin-bottom: 20px; line-height: 1.5;">Tienes 17 temporadas para convertirte en el G.O.A.T.</p>
         
         <div class="form-group">
-            <input type="text" id="in-name" placeholder="TU NOMBRE" value="Asier">
-            <input type="text" id="in-rival-name" placeholder="NOMBRE RIVAL" value="Riki">
-            <input type="number" id="in-dorsal" placeholder="DORSAL" value="17" min="0" max="99">
-            <input type="number" id="in-height" placeholder="ALTURA (cm)" value="195" min="160" max="230">
+            <input type="text" id="in-name" placeholder="TU NOMBRE" value="Asier" style="background:#111; color:white; border:1px solid #444;">
+            <input type="text" id="in-rival-name" placeholder="NOMBRE RIVAL" value="Riki" style="background:#111; color:white; border:1px solid #444;">
+            <input type="number" id="in-dorsal" placeholder="DORSAL" value="17" min="0" max="99" style="background:#111; color:white; border:1px solid #444;">
+            <input type="number" id="in-height" placeholder="ALTURA (cm)" value="195" min="160" max="230" style="background:#111; color:white; border:1px solid #444;">
         </div>
 
         <div class="form-group">
-            <select id="in-pos">
+            <select id="in-pos" style="background:#111; color:white; border:1px solid #444;">
                 <option value="Base">Posición: Base</option>
                 <option value="Escolta">Posición: Escolta</option>
                 <option value="Alero">Posición: Alero</option>
                 <option value="Ala-Pívot">Posición: Ala-Pívot</option>
                 <option value="Pívot">Posición: Pívot</option>
             </select>
-            <select id="in-style">
+            <select id="in-style" style="background:#111; color:white; border:1px solid #444;">
                 <option value="equilibrado">Estilo: Equilibrado</option>
                 <option value="mate_tapon">Estilo: Mate y Tapón (+Físico y Defensa)</option>
                 <option value="tiro_robo">Estilo: Tiro y Robo (+Tiro y Defensa)</option>
@@ -40,11 +40,11 @@
         </div>
         
         <div class="form-group">
-            <select id="in-personality">
+            <select id="in-personality" style="background:#111; color:white; border:1px solid #444;">
                 <option value="deportista">Personalidad: Deportista (Mejor Entreno)</option>
                 <option value="fiestero">Personalidad: Showman (+ Fama y Dinero)</option>
             </select>
-            <select id="in-nat">
+            <select id="in-nat" style="background:#111; color:white; border:1px solid #444;">
                 <option value="🇪🇸 ESP">España 🇪🇸</option>
                 <option value="🇺🇸 USA">Estados Unidos 🇺🇸</option>
                 <option value="🇦🇷 ARG">Argentina 🇦🇷</option>
@@ -54,8 +54,19 @@
                 <option value="🇬🇷 GRE">Grecia 🇬🇷</option>
                 <option value="🇮🇹 ITA">Italia 🇮🇹</option>
                 <option value="🇩🇪 GER">Alemania 🇩🇪</option>
+                <option value="🇸🇮 SLO">Eslovenia 🇸🇮</option>
+                <option value="🇨🇦 CAN">Canadá 🇨🇦</option>
+                <option value="🇦🇺 AUS">Australia 🇦🇺</option>
+                <option value="🇧🇷 BRA">Brasil 🇧🇷</option>
+                <option value="🇱🇹 LTU">Lituania 🇱🇹</option>
+                <option value="🇭🇷 CRO">Croacia 🇭🇷</option>
+                <option value="🇹🇷 TUR">Turquía 🇹🇷</option>
+                <option value="🇨🇳 CHN">China 🇨🇳</option>
+                <option value="🇯🇵 JPN">Japón 🇯🇵</option>
+                <option value="🇩🇴 DOM">R. Dominicana 🇩🇴</option>
+                <option value="🇵🇷 PUR">Puerto Rico 🇵🇷</option>
             </select>
-            <select id="in-team">
+            <select id="in-team" style="background:#111; color:white; border:1px solid #444;">
                 <option value="C.B. Berenguer Dalma">C.B. Berenguer Dalma</option>
                 <option value="Real Madrid Jr.">Real Madrid Jr.</option>
                 <option value="Barça Jr.">Barça Jr.</option>
@@ -78,8 +89,8 @@
         </div>
     </div>
 
-    <div id="main-game-ui" style="display: none; height: 100%; flex-direction: column;">
-        <header class="top-nav dialog-box">
+    <div id="main-game-ui" style="display: none; height: 100%; flex-direction: column; background-color: #000;">
+        <header class="top-nav dialog-box" style="background-color: #000; border-bottom: 2px solid #333;">
             <div class="player-info">
                 <span class="dorsal" id="ui-dorsal">#17</span>
                 <div>
@@ -96,18 +107,19 @@
             </div>
         </header>
 
-        <div class="stats-grid dialog-box">
-            <div class="stat-box"><span class="s-val" id="st-ppp">0.0</span><span class="s-lab">PTS</span></div>
-            <div class="stat-box"><span class="s-val" id="st-app">0.0</span><span class="s-lab">AST</span></div>
-            <div class="stat-box"><span class="s-val" id="st-rpp">0.0</span><span class="s-lab">REB</span></div>
-            <div class="stat-box"><span class="s-val" id="st-ropp">0.0</span><span class="s-lab">ROB</span></div>
-            <div class="stat-box"><span class="s-val" id="st-tpp">0.0</span><span class="s-lab">TAP</span></div>
-            <div class="stat-box"><span class="s-val" id="st-tc">0%</span><span class="s-lab">%TC</span></div>
+        <div class="stats-grid dialog-box" style="background-color: #000; border: 1px solid #333; display: flex; flex-direction: row; justify-content: space-around; padding: 5px; text-align: center;">
+            <div class="stat-box"><span class="s-val" id="st-ppp" style="color: #fff; display: block;">0.0</span><span class="s-lab" style="color: #aaa; font-size: 0.7em;">PTS</span></div>
+            <div class="stat-box"><span class="s-val" id="st-app" style="color: #fff; display: block;">0.0</span><span class="s-lab" style="color: #aaa; font-size: 0.7em;">AST</span></div>
+            <div class="stat-box"><span class="s-val" id="st-rpp" style="color: #fff; display: block;">0.0</span><span class="s-lab" style="color: #aaa; font-size: 0.7em;">REB</span></div>
+            <div class="stat-box"><span class="s-val" id="st-ropp" style="color: #fff; display: block;">0.0</span><span class="s-lab" style="color: #aaa; font-size: 0.7em;">ROB</span></div>
+            <div class="stat-box"><span class="s-val" id="st-tpp" style="color: #fff; display: block;">0.0</span><span class="s-lab" style="color: #aaa; font-size: 0.7em;">TAP</span></div>
+            <div class="stat-box"><span class="s-val" id="st-tc" style="color: #fff; display: block;">0%</span><span class="s-lab" style="color: #aaa; font-size: 0.7em;">%TC</span></div>
+            <div class="stat-box"><span class="s-val" id="st-t3" style="color: #fff; display: block;">0%</span><span class="s-lab" style="color: #aaa; font-size: 0.7em;">%3P</span></div>
         </div>
 
-        <main id="main-content">
-            <div id="game-view">
-                <div id="live-scoreboard" class="dialog-box sb-hud" style="display: none;">
+        <main id="main-content" style="background-color: #000;">
+            <div id="game-view" style="background-color: #000;">
+                <div id="live-scoreboard" class="dialog-box sb-hud" style="display: none; background-color: #111;">
                     <div class="hud-team">
                         <span class="hud-name" id="sb-my-team">MI EQUIPO</span>
                         <span class="hud-pts" id="sb-my-pts">0</span>
@@ -121,18 +133,18 @@
                     </div>
                 </div>
 
-                <div id="game-log"></div>
+                <div id="game-log" style="background-color: #000;"></div>
             </div>
 
-            <aside id="sidebar">
-                <div id="actions"></div>
+            <aside id="sidebar" style="background-color: #000;">
+                <div id="actions" style="display: flex; flex-direction: column; gap: 8px;"></div>
                 
-                <div class="dialog-box" style="margin-top: 15px;">
+                <div class="dialog-box" style="margin-top: 15px; background-color: #000; border: 1px solid #333;">
                     <span class="section-title">🌟 LÍDERES ANOTACIÓN</span>
                     <table id="table-pts"></table>
                 </div>
                 
-                <div class="dialog-box" style="margin-top: 15px;">
+                <div class="dialog-box" style="margin-top: 15px; background-color: #000; border: 1px solid #333;">
                     <span id="title-conf1" class="section-title" style="color:var(--accent);">MI CONFERENCIA</span>
                     <table id="table-vd-1"></table>
                     
@@ -143,7 +155,7 @@
         </main>
     </div>
 
-    <div id="profile-modal" class="dialog-box" style="display: none; position: absolute; top: 5%; left: 5%; width: 90%; max-width: 650px; z-index: 100; background: var(--bg-inside); border: 4px solid gold; box-shadow: 0 0 0 2000px rgba(0,0,0,0.85); max-height: 90vh; overflow-y: auto;">
+    <div id="profile-modal" class="dialog-box" style="display: none; position: absolute; top: 5%; left: 5%; width: 90%; max-width: 650px; z-index: 100; background: #111; border: 4px solid gold; box-shadow: 0 0 0 2000px rgba(0,0,0,0.85); max-height: 90vh; overflow-y: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 10px;">
             <h2 style="color: gold; font-size: 1em;">👑 CARTA Y LEGADO G.O.A.T.</h2>
             <button onclick="cerrarPerfil()" class="btn-main" style="padding: 5px; width:auto; background: var(--danger); border: none; color: #fff; cursor: pointer;">X</button>
@@ -177,14 +189,14 @@
         </div>
     </div>
 
-    <div id="teams-modal" class="dialog-box" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; z-index: 110; box-shadow: 0 0 0 2000px rgba(0,0,0,0.85); background: var(--bg-inside); border: 2px solid #555;">
+    <div id="teams-modal" class="dialog-box" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; z-index: 110; box-shadow: 0 0 0 2000px rgba(0,0,0,0.85); background: #111; border: 2px solid #555;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 15px;">
             <h2 style="color: #fff; font-size: 1.1em;">⛹️ EQUIPOS Y VALORACIONES</h2>
             <button onclick="cerrarEquipos()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2em; font-weight: bold;">X</button>
         </div>
         <div style="margin-top: 15px;">
             <span style="font-size: 0.7em; color: var(--accent);">SELECCIONA EQUIPO:</span>
-            <select id="sel-equipo" onchange="mostrarEquipoInfo()" style="width: 100%; margin-top: 10px; padding: 10px;"></select>
+            <select id="sel-equipo" onchange="mostrarEquipoInfo()" style="width: 100%; margin-top: 10px; padding: 10px; background: #000; color: #fff; border: 1px solid #444;"></select>
         </div>
         <div id="team-roster-div" style="background: #000; padding: 15px; border-radius: 6px; border: 1px dashed #444; margin-top: 15px; font-size: 0.75em; line-height: 2;">
         </div>
