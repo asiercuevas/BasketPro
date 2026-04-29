@@ -534,17 +534,40 @@ function res(tipo, id) {
 // Función para repartir stats (Añadido Robos y Tapones reales para el DPOY)
 function distributeStats(roster, totalPts) {
     if(!roster || roster.length === 0) return;
-    let totalOvr = roster.reduce((s, j) => s + j.o, 0);
+    
+    // Usamos una potencia (4.5) para que las medias altas tengan un "peso" muchisimo mayor
+    let totalWeight = roster.reduce((s, j) => s + Math.pow(j.o, 4.5), 0);
+    let ptsAssigned = 0;
+
     roster.forEach((jug, idx) => {
-        let weight = jug.o / totalOvr;
-        let mult = idx === 0 ? 1.5 : 0.8; 
-        let pts = Math.floor(totalPts * weight * mult * (0.8 + Math.random()*0.4));
+        let weight = Math.pow(jug.o, 4.5) / totalWeight;
+        
+        // La estrella (idx 0) recibe un ligero bonus de uso de balon, el resto un poco menos
+        let starBonus = idx === 0 ? 1.2 : 0.9; 
+        
+        // Puntos: basados en su peso en el equipo + factor suerte del partido
+        let pts = Math.floor(totalPts * weight * starBonus * (0.8 + Math.random() * 0.4));
         jug.pts += pts;
-        jug.reb += Math.floor((jug.o/15) * (Math.random()*0.5 + 0.5));
-        jug.ast += Math.floor((jug.o/20) * (Math.random()*0.5 + 0.5));
-        jug.rob += Math.random() < (jug.o > 80 ? 0.35 : 0.15) ? 1 : 0;
-        jug.tap += Math.random() < (jug.o > 82 ? 0.25 : 0.1) ? 1 : 0;
+        ptsAssigned += pts;
+
+        // Rebotes y Asistencias: Escala exponencial segun su media (OVR)
+        jug.reb += Math.floor(Math.pow(jug.o / 35, 2.5) * (0.5 + Math.random() * 0.8));
+        jug.ast += Math.floor(Math.pow(jug.o / 40, 2.5) * (0.5 + Math.random() * 0.8));
+        
+        // Robos y Tapones: Mas probabilidad cuanto mayor sea la media
+        if (Math.random() < (jug.o / 150)) {
+            jug.rob += Math.floor(Math.random() * 2);
+        }
+        if (Math.random() < (jug.o / 150)) {
+            jug.tap += Math.floor(Math.random() * 2);
+        }
     });
+
+    // Si por los redondeos sobran puntos totales del equipo, se los damos a la estrella (idx 0)
+    // Esto asegura que los cracks del juego lleguen a 25-30 puntos de media por partido.
+    if (totalPts > ptsAssigned) {
+        roster[0].pts += (totalPts - ptsAssigned);
+    }
 }
 
 function finish() {
@@ -836,26 +859,56 @@ function mostrarEquipoInfo() {
     let mAI = Math.max(1, equipoLiga.v + equipoLiga.d);
     let m = (tName === p.team) ? Math.max(1, matchesPlayed) : mAI;
     
-    let html = `<h3 style="color:var(--accent); margin-bottom:10px;">${tName.toUpperCase()} - <span style="color:#fff;">MEDIA: ${realTeamObj.ovr}</span></h3><hr style="border-color:#333; margin-bottom:15px;">`;
+    let html = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3 style="color:var(--accent); margin:0;">${tName.toUpperCase()}</h3>
+        <span style="color:#fff; background:#222; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:0.9em;">MEDIA: ${realTeamObj.ovr}</span>
+    </div>`;
+    
+    // Contenedor Grid con scroll interno para no romper el modal
+    html += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; max-height: 380px; overflow-y: auto; padding-right: 5px;">`;
     
     if(p.team === tName) {
         let ppp = matchesPlayed === 0 ? "0.0" : (p.stats.pts/m).toFixed(1);
         let rpp = matchesPlayed === 0 ? "0.0" : (p.stats.reb/m).toFixed(1);
         let app = matchesPlayed === 0 ? "0.0" : (p.stats.ast/m).toFixed(1);
-        html += `<p style="color:var(--success); margin-bottom: 5px;">🌟 <b>${p.name} (TÚ)</b> - ${p.pos} | <b>${p.ovr} OVR</b> <span style="float:right; font-size:0.9em; color:#fff;">${ppp}p ${rpp}r ${app}a</span></p>`;
+        html += `
+        <div style="background: rgba(255,102,0,0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 10px; text-align: center; box-shadow: 0 4px 10px rgba(255,102,0,0.2);">
+            <div style="font-size: 0.8em; color: var(--accent); font-weight: bold; margin-bottom: 4px;">${p.pos.toUpperCase()}</div>
+            <div style="color: var(--accent); font-weight: bold; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size:0.85em;">🌟 ${p.name} (TÚ)</div>
+            <div style="font-size: 0.7em; background: rgba(0,0,0,0.5); padding: 4px; border-radius: 4px; margin-bottom: 5px;">OVR: <span style="color:#fff; font-weight:bold;">${p.ovr}</span></div>
+            <div style="font-size: 0.65em; color: #ccc;">${ppp}p | ${rpp}r | ${app}a</div>
+        </div>`;
     }
     
     if(equipoLiga && equipoLiga.roster) {
         equipoLiga.roster.forEach(jug => {
             if(tName === p.team && jug.n === p.name) return;
-            let color = (jug.n === p.rivalName) ? "color:gold;" : "color:#ccc;";
+            
+            let isRival = (jug.n === p.rivalName);
+            let bgColor = isRival ? "rgba(255,215,0,0.05)" : "rgba(255,255,255,0.03)";
+            let borderColor = isRival ? "gold" : "rgba(255,255,255,0.1)";
+            let nameColor = isRival ? "gold" : "#f4f4f7";
+            let posStr = posMap[jug.p] || jug.p || "S";
+            if(posStr.length > 5) posStr = jug.p;
+            
             let jugPPP = (jug.pts / mAI).toFixed(1);
             let jugRPP = (jug.reb / mAI).toFixed(1);
             let jugAPP = (jug.ast / mAI).toFixed(1);
 
-            html += `<p style="${color} margin-bottom:5px; border-bottom:1px dashed #222; padding-bottom:5px;">👤 ${jug.n} (${posMap[jug.p] || "S"}) | <b style="color:#fff;">${jug.o || 70} OVR</b> <span style="float:right; font-size:0.9em; color:#fff;">${jugPPP}p ${jugRPP}r ${jugAPP}a</span></p>`;
+            html += `
+            <div style="background: ${bgColor}; border: 1px solid ${borderColor}; border-radius: 8px; padding: 10px; text-align: center;">
+                <div style="font-size: 0.8em; color: var(--accent); font-weight: bold; margin-bottom: 4px;">${posStr}</div>
+                <div style="color: ${nameColor}; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size:0.85em;">${isRival ? '🔥 ' : ''}${jug.n}</div>
+                <div style="font-size: 0.7em; background: rgba(0,0,0,0.5); padding: 4px; border-radius: 4px; margin-bottom: 5px;">OVR: <span style="color:#fff; font-weight:bold;">${jug.o || 70}</span></div>
+                <div style="font-size: 0.65em; color: #ccc;">${jugPPP}p | ${jugRPP}r | ${jugAPP}a</div>
+            </div>`;
         });
-    } else html += `<p style="color:#888;">Plantilla no disponible.</p>`;
+    } else {
+        html += `<div style="color:#888; font-size: 0.9em;">Plantilla no disponible.</div>`;
+    }
+    
+    html += `</div>`;
     document.getElementById('team-roster-div').innerHTML = html;
 }
 
