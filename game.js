@@ -168,6 +168,29 @@ function iniciarCarrera() {
     
     prepararLiga(); evalRole(); updateUI(); renderMenu();
     escribirDialogo(`AGENTE:<br>Jugarás de ${p.pos} con el #${p.dorsal} en ${p.team}. ¡A por la Temporada ${p.season}!`);
+    // ESTILOS DINAMICOS PARA HISTORIAS MÁS GRANDES
+    if (!document.getElementById('story-styles')) {
+        let st = document.createElement('style');
+        st.id = 'story-styles';
+        st.innerHTML = `
+            .story-event h3 { font-size: 1.25em !important; }
+            .story-event p { font-size: 0.95em !important; line-height: 1.6 !important; }
+            .story-event button { font-size: 0.85em !important; padding: 12px !important; font-weight: bold !important; }
+        `;
+        document.head.appendChild(st);
+    }
+    
+    // INTRODUCCIÓN DE LA HISTORIA
+    setTimeout(() => {
+        if(typeof StorySystem !== 'undefined') {
+            StorySystem.trigger("🏀 EL COMIENZO DE TU LEYENDA", 
+            "Acabas de llegar al equipo. Eres el nuevo, pero tienes un sueño claro: llegar a la cima del baloncesto mundial. Tu camino no será fácil: empezarás en la liga Junior, tendrás que mejorar tus estadísticas entrenando, ganarte un puesto, llegar a la ACB, ser drafteado en la NBA y convertirte en el G.O.A.T. ¡El balón es tuyo!",
+            [
+                { text: "¡Vamos a por ello! (Empezar Carrera)", action: () => { p.fame += 5; updateUI(); } }
+            ], 'intro_juego');
+        }
+    }, 500);
+
     guardarPartida();
 }
 
@@ -212,10 +235,12 @@ function getTrainCost() {
 function train() {
     let cost = getTrainCost(); let cMod = p.personality === "deportista" ? Math.floor(cost * 0.8) : cost; 
     if(p.money < cMod) return alert(`Fondos insuficientes. El coste es de ${cMod}€.`);
-    if(p.ovr >= DB[p.fase].maxOvr) return alert(`Límite OVR alcanzado en esta liga (${DB[p.fase].maxOvr}).`);
+    
+    let capOvr = (p.fase === 1) ? 83 : DB[p.fase].maxOvr; // Tope ACB en 83 OVR
+    if(p.ovr >= capOvr) return alert(`Límite OVR alcanzado en esta liga (${capOvr}).`);
     
     p.money -= cMod; p.fisico += 1; p.tiro += 1; p.def += 1; p.manejo += 1; p.bandeja += 1;
-    p.ovr = Math.min(DB[p.fase].maxOvr, Math.round((p.fisico+p.tiro+p.def+p.manejo+p.bandeja)/5));
+    p.ovr = Math.min(capOvr, p.ovr + 1);
     
     if(p.personality === "deportista" && Math.random() > 0.7) { 
         p.fisico += 1; escribirDialogo("ENTRENAMIENTO:<br>Tu ética de trabajo te da un bonus extra de físico."); 
@@ -246,9 +271,10 @@ function renderMenu() {
             <button onclick="renderVidaPrivada()" class="btn-main" style="flex:1; border-color: gold; color: gold;">💵 VIDA PRIVADA</button>
             <button onclick="pedirTraspaso()" class="btn-main btn-trade" style="flex:1;" ${p.isPlayoffs ? 'disabled' : ''}>🔄 TRASPASO</button>
         </div>
-        <div style="display:flex; gap:5px;">
-            <button onclick="abrirPerfil()" class="btn-main" style="flex:1; border-color: #555; color: #ccc; margin:0;">📊 PERFIL / GOAT</button>
-            <button onclick="abrirEquipos()" class="btn-main" style="flex:1; border-color: #555; color: #ccc; margin:0;">⛹️ EQUIPOS</button>
+        <div style="display:flex; gap:5px; margin-bottom:5px;">
+            <button onclick="abrirPerfil()" class="btn-main" style="flex:1; border-color: #555; color: #ccc; margin:0; padding:8px; font-size:0.65em;">📊 PERFIL</button>
+            <button onclick="abrirEquipos()" class="btn-main" style="flex:1; border-color: #555; color: #ccc; margin:0; padding:8px; font-size:0.65em;">⛹️ EQUIPOS</button>
+            <button onclick="abrirCalendario()" class="btn-main" style="flex:1; border-color: #555; color: #ccc; margin:0; padding:8px; font-size:0.65em;">📅 PARTIDOS</button>
         </div>
     `;
     
@@ -256,6 +282,29 @@ function renderMenu() {
         act.innerHTML += `<button onclick="verCuadroPlayoffs()" class="btn-main" style="border-color:#f0f; color:#f0f; margin-top:5px;">🏀 CUADRO PLAYOFFS</button>`;
     }
     
+    // ESTILOS DINAMICOS PARA HISTORIAS MÁS GRANDES
+    if (!document.getElementById('story-styles')) {
+        let st = document.createElement('style');
+        st.id = 'story-styles';
+        st.innerHTML = `
+            .story-event h3 { font-size: 1.25em !important; }
+            .story-event p { font-size: 0.95em !important; line-height: 1.6 !important; }
+            .story-event button { font-size: 0.85em !important; padding: 12px !important; font-weight: bold !important; }
+        `;
+        document.head.appendChild(st);
+    }
+    
+    // INTRODUCCIÓN DE LA HISTORIA
+    setTimeout(() => {
+        if(typeof StorySystem !== 'undefined') {
+            StorySystem.trigger("🏀 EL COMIENZO DE TU LEYENDA", 
+            "Acabas de llegar al equipo. Eres el nuevo, pero tienes un sueño claro: llegar a la cima del baloncesto mundial. Tu camino no será fácil: empezarás en la liga Junior, tendrás que mejorar tus estadísticas entrenando, ganarte un puesto, llegar a la ACB, ser drafteado en la NBA y convertirte en el G.O.A.T. ¡El balón es tuyo!",
+            [
+                { text: "¡Vamos a por ello! (Empezar Carrera)", action: () => { p.fame += 5; updateUI(); } }
+            ], 'intro_juego');
+        }
+    }, 500);
+
     guardarPartida();
 }
 
@@ -429,7 +478,7 @@ function play() {
     match.finalBaseMyScore = 70 + Math.floor(diff * 0.3) + Math.floor(Math.random() * 8);
     match.finalBaseRivScore = 70 - Math.floor(diff * 0.3) + Math.floor(Math.random() * 8); 
 
-    if (p.fase === 0) { match.finalBaseMyScore += 2; match.finalBaseRivScore -= 2; } 
+    if (p.fase === 0) { match.finalBaseMyScore += 1; match.finalBaseRivScore -= 1; } 
 
     match.myScore = 0; match.rivScore = 0;
     match.numPlays = p.role === "Suplente" ? 3 : (p.role === "Titular" ? 5 : 6);
@@ -459,7 +508,7 @@ function getProbabilidad(accion) {
     let diffOvr = p.ovr - match.rival.ovr;
     let mod = diffOvr; 
     
-    if (p.fase === 0) mod += 2; 
+    if (p.fase === 0) mod += 1; 
 
     let baseProb = (accion==='m')?p.fisico:(accion==='b')?p.bandeja:(accion==='t')?p.tiro:(accion==='a')?p.manejo:(accion==='ro')?p.def-5:(accion==='ta')?p.def:Math.max(p.fisico,p.def)+10;
     
@@ -574,11 +623,35 @@ function finish() {
     document.getElementById('live-scoreboard').style.display = 'none';
     let minMult = p.role === "Estrella" ? 2.0 : (p.role === "Titular" ? 1.5 : 0.8); 
     
-    let gamePts = match.pts + Math.floor((Math.random() * 4 + (p.ovr / 15)) * minMult);
-    let gameAst = match.ast + Math.floor((Math.random() * 4 + (p.manejo / 25)) * minMult);
-    let gameReb = match.reb + Math.floor((Math.random() * 3 + (p.fisico / 35)) * minMult);
-    let gameRob = match.rob + Math.floor(Math.random() * 2 * minMult);
-    let gameTap = match.tap + Math.floor(Math.random() * 2 * minMult);
+    let gamePts, gameAst, gameReb, gameRob, gameTap;
+    if (p.ovr >= 80 && p.ovr <= 88) {
+        // 80-88 OVR → margen amplio 15-28pts, más probable hacia el centro según OVR
+        // OVR bajo → más probable caer en 15-20, OVR alto → más probable 22-28
+        let t = (p.ovr - 80) / 8; // 0.0 (80ovr) a 1.0 (88ovr)
+        let media = 18 + Math.round(t * 7); // centro de probabilidad: 18 a 25
+        let variacion = Math.floor((Math.random() + Math.random() + Math.random()) / 3 * 13) - 3; // -3 a +10, campana
+        gamePts = Math.max(15, Math.min(28, media + variacion));
+        gameAst = match.ast + Math.floor(3 + (p.manejo - 70) / 6 + Math.random() * 3);
+        gameReb = match.reb + Math.floor(4 + (p.fisico - 70) / 6 + Math.random() * 3);
+        gameRob = match.rob + Math.floor((p.def - 65) / 15 + Math.random() * 2);
+        gameTap = match.tap + Math.floor((p.fisico - 65) / 15 + Math.random() * 2);
+    } else if (p.ovr >= 89) {
+        // 89-99 OVR → margen amplio 20-45pts, más probable hacia el centro según OVR
+        let t = (p.ovr - 89) / 10; // 0.0 (89ovr) a 1.0 (99ovr)
+        let media = 25 + Math.round(t * 13); // centro de probabilidad: 25 a 38
+        let variacion = Math.floor((Math.random() + Math.random() + Math.random()) / 3 * 20) - 5; // -5 a +15, campana
+        gamePts = Math.max(20, Math.min(45, media + variacion));
+        gameAst = match.ast + Math.floor((Math.random() * 4 + (p.manejo / 25)) * minMult);
+        gameReb = match.reb + Math.floor((Math.random() * 3 + (p.fisico / 35)) * minMult);
+        gameRob = match.rob + Math.floor(Math.random() * 2 * minMult);
+        gameTap = match.tap + Math.floor(Math.random() * 2 * minMult);
+    } else {
+        gamePts = match.pts + Math.floor((Math.random() * 4 + (p.ovr / 10)) * minMult);
+        gameAst = match.ast + Math.floor((Math.random() * 4 + (p.manejo / 25)) * minMult);
+        gameReb = match.reb + Math.floor((Math.random() * 3 + (p.fisico / 35)) * minMult);
+        gameRob = match.rob + Math.floor(Math.random() * 2 * minMult);
+        gameTap = match.tap + Math.floor(Math.random() * 2 * minMult);
+    }
 
     let extTcAtt = Math.floor(gamePts/2) + Math.floor(Math.random()*4);
     let extTcMak = Math.floor(gamePts / 2);
@@ -626,6 +699,12 @@ function finish() {
     if (p.stats.lossStreak >= 3) { fameChange -= 1.5; p.stats.lossStreak = 0; escribirDialogo("❌ Mala racha del equipo (3 derrotas). -1.5 Fama."); }
 
     let proMultiplier = p.fase > 0 ? 0.7 : 1.0;
+    
+    // Tope escalado de fama: Si pasas de 47, ganar fama cuesta muchísimo más
+    if (p.fame >= 47 && fameChange > 0) {
+        fameChange *= 0.3; 
+    }
+    
     p.fame += (fameChange * proMultiplier);
     
     if (p.fase === 1 && p.fame > FAME_ACB_LIMIT) p.fame = FAME_ACB_LIMIT;
@@ -752,7 +831,7 @@ function draft() {
         else if (p.fase === 1 && (p.ovr >= 85 || p.fame >= 60)) { p.allStars++; escribirDialogo("🌟 ALL-STAR ACB: Convocado para el All-Star de la liga."); }
         if (p.ovr >= 90 && p.teamData.v >= (leagueTable.length*0.6)) { p.mvps++; p.fame += 10; escribirDialogo(`🏆 MVP: ¡Eres el M.V.P. de la Temporada!`); }
         if (p.def >= 85) { p.dpoys++; p.fame += 5; escribirDialogo(`🛡️ DPOY: Premio al Mejor Defensor del Año.`); }
-        if ((p.season === 2 && p.fase === 1) || (p.season === 3 && p.fase === 2)) { p.rookies++; p.fame += 5; escribirDialogo(`👶 ROOKIE DEL AÑO. El futuro es tuyo.`); }
+        if ((p.season === 2 && p.fase === 1) || (p.fase === 2 && p.history.nba.matches === 0)) { p.rookies++; p.fame += 5; escribirDialogo(`👶 ROOKIE DEL AÑO. El futuro es tuyo.`); }
         if (p.role === "Suplente" && p.stats.pts > 200) { p.sixthMan++; p.fame += 3; escribirDialogo(`🔥 6º HOMBRE DEL AÑO. Calidad desde el banco.`); }
     }
 
@@ -791,6 +870,29 @@ function draft() {
         renovHtml += `</div>`;
         document.getElementById('game-log').insertAdjacentHTML('beforeend', renovHtml); scrollToBottom();
     }
+    // ESTILOS DINAMICOS PARA HISTORIAS MÁS GRANDES
+    if (!document.getElementById('story-styles')) {
+        let st = document.createElement('style');
+        st.id = 'story-styles';
+        st.innerHTML = `
+            .story-event h3 { font-size: 1.25em !important; }
+            .story-event p { font-size: 0.95em !important; line-height: 1.6 !important; }
+            .story-event button { font-size: 0.85em !important; padding: 12px !important; font-weight: bold !important; }
+        `;
+        document.head.appendChild(st);
+    }
+    
+    // INTRODUCCIÓN DE LA HISTORIA
+    setTimeout(() => {
+        if(typeof StorySystem !== 'undefined') {
+            StorySystem.trigger("🏀 EL COMIENZO DE TU LEYENDA", 
+            "Acabas de llegar al equipo. Eres el nuevo, pero tienes un sueño claro: llegar a la cima del baloncesto mundial. Tu camino no será fácil: empezarás en la liga Junior, tendrás que mejorar tus estadísticas entrenando, ganarte un puesto, llegar a la ACB, ser drafteado en la NBA y convertirte en el G.O.A.T. ¡El balón es tuyo!",
+            [
+                { text: "¡Vamos a por ello! (Empezar Carrera)", action: () => { p.fame += 5; updateUI(); } }
+            ], 'intro_juego');
+        }
+    }, 500);
+
     guardarPartida();
 }
 
@@ -1349,4 +1451,67 @@ function finalizarAllStar() {
     p.aswDone = null;
     escribirDialogo('✅ All-Star Weekend finalizado. ¡Vuelve a la temporada regular!');
     renderMenu();
+}
+
+
+// ==========================================
+// FUNCIONES DEL CALENDARIO (AÑADIDO DINÁMICO)
+// ==========================================
+function crearModalCalendario() {
+    if(!document.getElementById('calendario-modal')) {
+        let div = document.createElement('div');
+        div.id = 'calendario-modal';
+        div.className = 'dialog-box';
+        div.style.cssText = 'display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; z-index: 120; box-shadow: 0 0 0 2000px rgba(0,0,0,0.85); background: #111; border: 2px solid #555; max-height: 80vh; overflow-y: auto;';
+        div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 15px; position: sticky; top: 0; background: #111; z-index: 5;">
+                <h2 style="color: #fff; font-size: 1.1em;">📅 CALENDARIO</h2>
+                <button onclick="cerrarCalendario()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2em; font-weight: bold;">X</button>
+            </div>
+            <div id="calendario-content" style="margin-top: 15px; font-size: 0.7em;"></div>
+        `;
+        document.body.appendChild(div);
+    }
+}
+
+function abrirCalendario() {
+    crearModalCalendario();
+    let numEquiposConf = leagueTable.filter(t => t.conf === p.teamData.conf).length;
+    let partidosTemporada = (p.fase === 0) ? (numEquiposConf - 1) * 2 : (leagueTable.length - 1);
+    
+    let posiblesRivales = p.isPlayoffs ? [p.playoffRival] : leagueTable.filter(t => !t.isPlayer && (p.fase===0 ? t.conf===p.teamData.conf : true));
+    
+    let html = `<h3 style="color:var(--accent); margin-bottom: 15px; text-align: center;">TEMPORADA ${p.season} - ${p.fase === 0 ? "JUNIOR" : p.fase === 1 ? "ACB" : "NBA"}</h3>`;
+    
+    if (p.isPlayoffs) {
+        html += `<div style="text-align:center; color:#fff; padding:20px;">Estás en Playoffs. Tu rival actual es:<br><br><b style="color:gold; font-size:1.5em;">${p.playoffRival.name}</b></div>`;
+    } else {
+        html += `<div style="display: flex; flex-direction: column; gap: 8px;">`;
+        for(let i=0; i<partidosTemporada; i++) {
+            let r = posiblesRivales[i % posiblesRivales.length];
+            let jugado = i < p.sMatches;
+            let esActual = i === p.sMatches;
+            
+            let bg = esActual ? "rgba(255,102,0,0.2)" : (jugado ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.5)");
+            let border = esActual ? "1px solid var(--accent)" : (jugado ? "1px solid #444" : "1px dashed #333");
+            let op = jugado ? "0.6" : "1";
+            
+            html += `
+                <div style="background: ${bg}; border: ${border}; opacity: ${op}; padding: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #888; width: 40px; font-family:'Press Start 2P', monospace; font-size:0.8em;">J.${i+1}</span>
+                    <span style="color: #fff; flex: 1; font-weight: ${esActual?'bold':'normal'};">${p.team} <span style="color:#555;">vs</span> ${r.name}</span>
+                    <span style="color: ${jugado?'#888':(esActual?'var(--accent)':'#fff')}; font-weight: bold; font-family:'Press Start 2P', monospace; font-size:0.7em;">${jugado ? '✓ JUGADO' : (esActual ? '▶ PRÓXIMO' : 'PENDIENTE')}</span>
+                </div>
+            `;
+        }
+        html += `</div>`;
+    }
+    
+    document.getElementById('calendario-content').innerHTML = html;
+    document.getElementById('calendario-modal').style.display = 'block';
+}
+
+function cerrarCalendario() {
+    let mod = document.getElementById('calendario-modal');
+    if(mod) mod.style.display = 'none';
 }
