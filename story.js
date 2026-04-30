@@ -331,7 +331,34 @@ const StorySystem = {
             eventFired = true;
         }
 
-        // Lanzar eventos aleatorios solo si NO ha saltado ningún evento de historia principal en este turno (15% probabilidad)
+        // ==========================================
+        // EVENTOS DE PASO DE ANTORCHA Y DINASTÍAS (Largo Plazo)
+        // ==========================================
+        if (p.season === 5 && !this.events.includes('cambio_generacional')) {
+            this.trigger("👑 EL CAMBIO DE ERA", 
+            "Las viejas leyendas de la liga están anunciando sus retiros. Los periodistas afirman que el baloncesto necesita una nueva cara visible para la próxima década. Todas las miradas se centran en la nueva generación de estrellas.", 
+            [ { text: "Asumir la presión mediática (+10 Fama, -5 Química)", action: () => { p.fame += 10; p.chem -= 5; } },
+              { text: "Trabajar en silencio (+5 Físico, +5 Tiro)", action: () => { p.fisico += 5; p.tiro += 5; } } ], 'cambio_generacional');
+            eventFired = true;
+        }
+
+        if (p.season === 10 && !this.events.includes('nueva_regla')) {
+            this.trigger("⚖️ CAMBIO DE REGLAS EN LA LIGA", 
+            "El comité de competición acaba de endurecer las faltas defensivas. A partir de ahora, jugar agresivo será más arriesgado, favoreciendo a los atacantes habilidosos.", 
+            [ { text: "Adaptar tu defensa (-5 Defensa, +10 Fama)", action: () => { p.def -= 5; p.fame += 10; } },
+              { text: "Protestar la norma (+5 Defensa, Sanción Económica)", action: () => { p.def += 5; p.money = Math.max(0, p.money - 3000); } } ], 'nueva_regla');
+            eventFired = true;
+        }
+
+        if (p.season === 15 && !this.events.includes('paso_antorcha')) {
+            this.trigger("🔥 EL PASO DE LA ANTORCHA", 
+            "Un novato prodigio ha llegado a la liga. Te busca al terminar el partido y te pide consejo. Te recuerda muchísimo a ti mismo cuando empezaste.", 
+            [ { text: "Tomarlo bajo tu tutela (+20 Química, +10 Fama)", action: () => { p.chem += 20; p.fame += 10; } },
+              { text: "Darle una lección de realidad en la pista (+10 Tiro, -15 Química)", action: () => { p.tiro += 10; p.chem -= 15; } } ], 'paso_antorcha');
+            eventFired = true;
+        }
+
+                // Lanzar eventos aleatorios solo si NO ha saltado ningún evento de historia principal en este turno (15% probabilidad)
         if (!eventFired && Math.random() > 0.85) {
             this.lanzarEventoAleatorio();
         }
