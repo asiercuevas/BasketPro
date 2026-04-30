@@ -4,7 +4,7 @@
 let p = {
     name: "", rivalName: "Riki", personality: "deportista", dorsal: "17", height: 195, nat: "", team: "", pos: "Base", style: "equilibrado", 
     ovr: 65, money: 0, season: 1,
-    fame: 10, chem: 50, rings: 0, mvps: 0, allStars: 0, dpoys: 0, rookies: 0, sixthMan: 0,
+    fame: 10, chem: 50, rings: 0, mvps: 0, allStars: 0, dpoys: 0, rookies: 0, sixthMan: 0, copas: 0, ligasJunior: 0, ligasACB: 0,
     hasShoe: false, rivalReconciled: false, hasHouse: false, hasCar: false, hasWatch: false, proGear: false, sponsor: "Ninguno",
     tiro: 65, fisico: 65, bandeja: 65, manejo: 65, def: 65,
     stats: { pts: 0, ast: 0, reb: 0, rob: 0, tap: 0, tcAttempt: 0, tcMake: 0, t3Attempt: 0, t3Make: 0, matches: 0, streak15: 0, gamesSinceBig: 0, lossStreak: 0 },
@@ -119,7 +119,7 @@ window.onload = function() {
 };
 
 function guardarPartida() {
-    const saveData = { jugador: p, liga: leagueTable };
+    const saveData = { jugador: p, liga: leagueTable, storyEvents: (typeof StorySystem !== 'undefined' ? StorySystem.events : []) };
     localStorage.setItem('basketSaveData', JSON.stringify(saveData));
 }
 
@@ -130,6 +130,7 @@ function cargarPartida() {
         leagueTable = data.liga;
         p.teamData = leagueTable.find(t => t.name === p.team);
         p.ovr = Math.round((p.tiro + p.fisico + p.manejo + p.def + p.bandeja) / 5);
+        if(typeof StorySystem !== 'undefined' && data.storyEvents) StorySystem.events = data.storyEvents;
 
         document.getElementById('setup-screen').style.display = 'none';
         document.getElementById('main-game-ui').style.display = 'flex';
@@ -748,7 +749,7 @@ function finish() {
             if(win) { p.copaStage = "GRAN FINAL"; p.copaRival = leagueTable.filter(t=>t.name!==p.team)[Math.floor(Math.random()*2)]; escribirDialogo(`🏆 ¡A LA GRAN FINAL DE COPA! Rival: ${p.copaRival.name}`); setTimeout(renderMenu, 4000); }
             else { p.isCopa = false; escribirDialogo(`❌ Caemos en Semis de Copa. Qué lástima.`); setTimeout(renderMenu, 4000); }
         } else if (p.copaStage === "GRAN FINAL") {
-            if(win) { p.fame = Math.min(FAME_MAX, p.fame + 5); p.money += 2000; escribirDialogo(`🥇 ¡CAMPEONES DE COPA! Has sumado +5 de Fama y 2000€ de prima.`); }
+            if(win) { p.copas++; p.fame = Math.min(FAME_MAX, p.fame + 5); p.money += 2000; escribirDialogo(`🥇 ¡CAMPEONES DE COPA! (Total copas: ${p.copas}) +5 Fama, +2000€`); }
             else { escribirDialogo(`🥈 Subcampeones de Copa... duele, pero volvemos a la liga regular.`); }
             p.isCopa = false;
             setTimeout(renderMenu, 4000);
@@ -762,7 +763,7 @@ function finish() {
                 if (win) { p.playoffStage = "GRAN FINAL"; p.playoffRival = p.playoffOtherWinner; escribirDialogo(`🏆 ¡A LA FINAL contra ${p.playoffRival.name}!`); setTimeout(renderMenu, 4000); } 
                 else { escribirDialogo(`❌ Eliminados en Semis.`); setTimeout(draft, 4000); }
             } else if (p.playoffStage === "GRAN FINAL") {
-                if(win) escribirDialogo(`🥇 ¡CAMPEONES JUNIOR!`); else escribirDialogo(`🥈 Perdemos la final...`);
+                if(win) { p.ligasJunior++; escribirDialogo(`🥇 ¡CAMPEONES JUNIOR! (Total: ${p.ligasJunior})`); } else escribirDialogo(`🥈 Perdemos la final...`);
                 setTimeout(draft, 4000);
             }
         } else if (p.fase === 1 || p.fase === 2) { 
@@ -784,7 +785,8 @@ function finish() {
                 else { escribirDialogo(`❌ Caemos en Semifinales.`); setTimeout(draft, 4000); }
             } else if (p.playoffStage === "GRAN FINAL") {
                 if(win) {
-                    escribirDialogo(`🥇 ¡CAMPEONES ABSOLUTOS! Haces historia.`);
+                    if(p.fase === 1) { p.ligasACB++; escribirDialogo(`🥇 ¡CAMPEONES ABSOLUTOS! Haces historia. (Ligas ACB: ${p.ligasACB})`); }
+                    else { escribirDialogo(`🥇 ¡CAMPEONES ABSOLUTOS! Haces historia.`); }
                     if(p.fase === 2) { p.rings++; p.fame = Math.min(FAME_MAX, p.fame + 10); escribirDialogo(`💍 ¡HAS GANADO UN ANILLO DE LA NBA! (Total: ${p.rings})`); }
                 } else escribirDialogo(`🥈 Subcampeones... nos quedamos a las puertas de la gloria.`);
                 setTimeout(draft, 4000);
@@ -1087,6 +1089,39 @@ function abrirPerfil() {
         <span style="color:var(--accent); margin-top:5px; display:block;">NBA (${sumPts.nba.matches} PJ):</span><br> <span style="font-size:0.9em; color:#fff;">${getAvgs(sumPts.nba)}</span>
     `;
     if(e('history-content')) e('history-content').innerHTML = histHtml;
+
+    // PALMARÉS — inyectado dinámicamente para no modificar el index.html
+    let palmaresId = 'palmares-content';
+    if (!e(palmaresId)) {
+        let sec = document.createElement('div');
+        sec.style.cssText = 'background:#0a0a0a; padding:15px; border-radius:6px; border:2px solid gold; margin-top:15px;';
+        sec.innerHTML = `<h3 style="color:gold;font-size:0.7em;margin-bottom:12px;text-align:center;letter-spacing:2px;">🏆 PALMARÉS DE TÍTULOS</h3><div id="${palmaresId}" style="font-size:0.6em;line-height:2;"></div>`;
+        let modal = e('profile-modal');
+        if (modal) modal.appendChild(sec);
+    }
+
+    const trofeo = (cond, icon, label, val) => {
+        let color = cond ? 'gold' : '#555';
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <span style="font-size:1.3em;">${icon}</span>
+            <div style="flex:1;display:flex;justify-content:space-between;color:${color};">
+                <span>${label}</span><span style="font-weight:bold;">${val}</span>
+            </div>
+            <span>${cond?'✅':'⬜'}</span>
+        </div>`;
+    };
+
+    let palmHtml = '';
+    palmHtml += trofeo(p.rings    > 0, '💍', 'Anillos NBA',           p.rings);
+    palmHtml += trofeo(p.ligasACB > 0, '🏆', 'Ligas ACB',             p.ligasACB);
+    palmHtml += trofeo(p.copas    > 0, '🥇', 'Copas del Rey',         p.copas);
+    palmHtml += trofeo(p.ligasJunior>0,'🎖️', 'Ligas Junior',         p.ligasJunior);
+    palmHtml += trofeo(p.mvps     > 0, '🌟', 'MVPs Temporada',        p.mvps);
+    palmHtml += trofeo(p.allStars > 0, '⭐', 'All-Stars',             p.allStars);
+    palmHtml += trofeo(p.dpoys    > 0, '🛡️', 'DPOY (Mejor Defensor)', p.dpoys);
+    palmHtml += trofeo(p.rookies  > 0, '👶', 'Rookie del Año',        p.rookies);
+    palmHtml += trofeo(p.sixthMan > 0, '🔥', '6º Hombre del Año',     p.sixthMan);
+    if(e(palmaresId)) e(palmaresId).innerHTML = palmHtml || '<span style="color:#555;">Aún sin títulos. ¡A por ellos!</span>';
 
     if(e('profile-modal')) e('profile-modal').style.display = 'block';
 }
