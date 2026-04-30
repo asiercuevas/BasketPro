@@ -685,8 +685,8 @@ function finish() {
     if (p.stats.gamesSinceBig >= 6) { fameChange -= 2; p.stats.gamesSinceBig = 0; escribirDialogo("📉 El público te está olvidando (6 partidos sin 20 pts). -2 Fama."); }
     if (p.stats.lossStreak >= 3) { fameChange -= 3; p.stats.lossStreak = 0; escribirDialogo("❌ Mala racha del equipo (3 derrotas). -3 Fama."); }
 
-    let proMultiplier = p.fase === 0 ? 0.8 : (p.fase === 1 ? 0.4 : 0.2);
-    if (p.fame >= 30 && fameChange > 0) { fameChange *= 0.2; }
+    let proMultiplier = p.fase === 0 ? 1.0 : (p.fase === 1 ? 0.8 : 0.6);
+    if (p.fame >= 55 && fameChange > 0) { fameChange *= 0.3; }
     p.fame += (fameChange * proMultiplier);
 
     if (p.fase === 1 && p.fame > FAME_ACB_LIMIT) p.fame = FAME_ACB_LIMIT;
