@@ -36,8 +36,11 @@ let p = {
     tiro: 65, 
     fisico: 65, 
     bandeja: 65, 
+    mate: 65,
     manejo: 65, 
     def: 65,
+    tapón: 65,
+    robo: 65,
     stats: { 
         pts: 0, ast: 0, reb: 0, rob: 0, tap: 0, 
         tcAttempt: 0, tcMake: 0, t3Attempt: 0, t3Make: 0, 
@@ -63,7 +66,9 @@ let p = {
     copaRival: null,
     rivalTeam: "", 
     aswPlayedThisSeason: false,
-    aswDone: null
+    aswDone: null,
+    animCompradas: ["t_base", "b_base", "m_base", "a_base"],
+    animEquipadas: { tiro: "t_base", bandeja: "b_base", mate: "m_base", manejo: "a_base" }
 };
 
 let leagueTable = []; 
@@ -131,6 +136,53 @@ const DB = [
     typeof DB_ACB !== 'undefined' ? DB_ACB : DB_JUNIOR, 
     typeof DB_NBA !== 'undefined' ? DB_NBA : DB_JUNIOR
 ];
+
+// =====================================================================
+// BASE DE DATOS DE ANIMACIONES (PRECIOS AJUSTADOS)
+// =====================================================================
+const DB_ANIMACIONES = {
+    tiro: [
+        { id: "t_base", nombre: "Tiro Clásico", precio: 0, bono: 0, desc: "Mecánica estándar de tiro." },
+        { id: "t_rapido", nombre: "Tiro Rápido", precio: 2000, bono: 4, desc: "+4% de Acierto en Triples." },
+        { id: "t_pro", nombre: "Mecánica Perfecta", precio: 4000, bono: 6, desc: "+6% de Acierto en Triples." },
+        { id: "t_klay", nombre: "Tiro de K. Thompson", precio: 5500, bono: 7, famaBono: 0.2, desc: "+7% Acierto | +0.2 Fama por triple." },
+        { id: "t_kd", nombre: "Tiro de K. Durant", precio: 6500, bono: 8, famaBono: 0.2, desc: "+8% Acierto | +0.2 Fama por triple." },
+        { id: "t_curry", nombre: "Tiro de S. Curry", precio: 8000, bono: 9, famaBono: 0.2, desc: "+9% Acierto | +0.2 Fama por triple." }
+    ],
+    bandeja: [
+        { id: "b_base", nombre: "Bandeja Básica", precio: 0, bono: 0, desc: "Finalización estándar." },
+        { id: "b_euro", nombre: "Euro-Step", precio: 1800, bono: 4, desc: "+4% de Acierto en Bandejas." },
+        { id: "b_jelly", nombre: "Jelly Layup", precio: 3800, bono: 6, desc: "+6% de Acierto en Bandejas." },
+        { id: "b_harden", nombre: "Euro de J. Harden", precio: 5000, bono: 7, famaBono: 0.2, desc: "+7% Acierto | +0.2 Fama por bandeja." },
+        { id: "b_ja", nombre: "Acrobacia de Ja Morant", precio: 6500, bono: 8, famaBono: 0.2, desc: "+8% Acierto | +0.2 Fama por bandeja." },
+        { id: "b_kyrie", nombre: "Finalización de Kyrie", precio: 8000, bono: 9, famaBono: 0.2, desc: "+9% Acierto | +0.2 Fama por bandeja." }
+    ],
+    mate: [
+        { id: "m_base", nombre: "Mate a una mano", precio: 0, bono: 0, desc: "Mate seguro y conservador." },
+        { id: "m_toma", nombre: "Tomahawk", precio: 2500, bono: 4, desc: "+4% de Acierto en Mates." },
+        { id: "m_360", nombre: "Mate 360º", precio: 4500, bono: 6, desc: "+6% de Acierto en Mates." },
+        { id: "m_giannis", nombre: "Vuelo de Giannis", precio: 6000, bono: 8, famaBono: 0.2, desc: "+8% Acierto | +0.2 Fama por mate." },
+        { id: "m_lebron", nombre: "Tomahawk de LeBron", precio: 7000, bono: 9, famaBono: 0.2, desc: "+9% Acierto | +0.2 Fama por mate." },
+        { id: "m_vince", nombre: "Molinillo de V. Carter", precio: 8000, bono: 10, famaBono: 0.2, desc: "+10% Acierto | +0.2 Fama por mate." }
+    ],
+    manejo: [
+        { id: "a_base", nombre: "Bote de Control", precio: 0, bono: 0, desc: "Dribbling básico." },
+        { id: "a_cross", nombre: "Crossover Letal", precio: 2000, bono: 4, desc: "+4% de Acierto al Asistir." },
+        { id: "a_ankle", nombre: "Ankle Breaker", precio: 4000, bono: 6, desc: "+6% de Acierto al Asistir." },
+        { id: "a_ai", nombre: "Crossover de Iverson", precio: 5500, bono: 8, famaBono: 0.2, desc: "+8% Acierto | +0.2 Fama por asistencia." },
+        { id: "a_kyrie", nombre: "Handles de Kyrie", precio: 6800, bono: 9, famaBono: 0.2, desc: "+9% Acierto | +0.2 Fama por asistencia." },
+        { id: "a_magic", nombre: "Pases de Magic", precio: 8000, bono: 10, famaBono: 0.2, desc: "+10% Acierto | +0.2 Fama por asistencia." }
+    ]
+};
+
+function getAnimBonus(tipoAccion) {
+    let cat = tipoAccion === 't' ? 'tiro' : (tipoAccion === 'b' ? 'bandeja' : (tipoAccion === 'm' ? 'mate' : (tipoAccion === 'a' ? 'manejo' : null)));
+    if (!cat) return 0;
+    
+    let animId = p.animEquipadas[cat];
+    let animObj = DB_ANIMACIONES[cat].find(a => a.id === animId);
+    return animObj ? animObj.bono : 0;
+}
 
 function ubicarRival() {
     if(!p.rivalName) return;
@@ -215,7 +267,7 @@ function evalRole() {
 }
 
 // =====================================================================
-// 3. INICIO DE PARTIDA Y CONFERENCIAS (BLINDADO)
+// 3. INICIO DE PARTIDA Y CONFERENCIAS
 // =====================================================================
 window.onload = function() {
     try {
@@ -242,6 +294,10 @@ function cargarPartida() {
         const data = JSON.parse(localStorage.getItem('basketSaveData'));
         if(data) {
             p = { ...p, ...data.jugador };
+            
+            if (!p.animCompradas) p.animCompradas = ["t_base", "b_base", "m_base", "a_base"];
+            if (!p.animEquipadas) p.animEquipadas = { tiro: "t_base", bandeja: "b_base", mate: "m_base", manejo: "a_base" };
+
             leagueTable = data.liga;
             p.teamData = leagueTable.find(t => t.name === p.team);
             p.ovr = calcOvr();
@@ -288,11 +344,14 @@ function iniciarCarrera() {
         p.manejo = 65; 
         p.def = 65; 
         p.bandeja = 65;
+        p.mate = 65;
+        p.tapón = 65;
+        p.robo = 65;
 
-        if (p.style === "mate_tapon") { p.fisico += 14; p.def += 12; p.tiro -= 10; p.manejo -= 6; p.bandeja -= 4; }
-        if (p.style === "tiro_robo") { p.tiro += 12; p.def += 10; p.fisico -= 8; p.manejo -= 4; p.bandeja -= 4; }
-        if (p.style === "manejo_bandeja") { p.manejo += 12; p.bandeja += 12; p.fisico += 4; p.def -= 8; p.tiro -= 4; }
-        if (p.style === "tiro_manejo") { p.tiro += 12; p.manejo += 10; p.bandeja += 4; p.def -= 8; p.fisico -= 4; }
+        if (p.style === "mate_tapon")    { p.fisico+=14; p.mate+=16; p.tapón+=14; p.tiro-=10; p.manejo-=6; p.bandeja-=4; }
+        if (p.style === "tiro_robo")     { p.tiro+=14; p.robo+=14; p.def+=8; p.fisico-=8; p.manejo-=4; p.bandeja-=4; }
+        if (p.style === "manejo_bandeja"){ p.manejo+=14; p.bandeja+=14; p.fisico+=4; p.def-=8; p.tiro-=4; }
+        if (p.style === "tiro_manejo")   { p.tiro+=14; p.manejo+=12; p.bandeja+=4; p.def-=8; p.fisico-=4; }
         
         if (p.personality === "ambicioso") { p.money += 1500; }
         if (p.personality === "fiestero") { p.fame += 20; p.money += 500; }
@@ -389,7 +448,6 @@ function prepararLiga() {
         leagueTable.push(equipo);
     });
     
-    // Blindaje extra
     if (!p.teamData || p.teamData.name === "") {
         p.teamData = leagueTable[0];
         p.team = p.teamData.name;
@@ -400,28 +458,32 @@ function prepararLiga() {
 // 4. MENÚS, ENTRENAMIENTO Y VIDA PRIVADA
 // =====================================================================
 
-// Sistema OVR estilo 2K: media ponderada por posición
 function calcOvr() {
-    // Pesos por posición (como en 2K: lo más importante de tu posición pesa más)
     const weights = {
-        'Base':         { tiro: 0.20, manejo: 0.28, fisico: 0.18, def: 0.16, bandeja: 0.18 },
-        'Escolta':      { tiro: 0.26, manejo: 0.20, fisico: 0.18, def: 0.18, bandeja: 0.18 },
-        'Alero':        { tiro: 0.22, manejo: 0.18, fisico: 0.22, def: 0.18, bandeja: 0.20 },
-        'Ala-Pívot':    { tiro: 0.16, manejo: 0.14, fisico: 0.26, def: 0.22, bandeja: 0.22 },
-        'Pívot':        { tiro: 0.10, manejo: 0.10, fisico: 0.28, def: 0.28, bandeja: 0.24 },
+        'Base':      { tiro:0.18, manejo:0.22, fisico:0.14, def:0.12, bandeja:0.12, mate:0.08, tapón:0.06, robo:0.08 },
+        'Escolta':   { tiro:0.22, manejo:0.16, fisico:0.14, def:0.12, bandeja:0.12, mate:0.10, tapón:0.06, robo:0.08 },
+        'Alero':     { tiro:0.18, manejo:0.14, fisico:0.16, def:0.12, bandeja:0.14, mate:0.12, tapón:0.08, robo:0.06 },
+        'Ala-Pívot': { tiro:0.12, manejo:0.10, fisico:0.18, def:0.14, bandeja:0.14, mate:0.16, tapón:0.10, robo:0.06 },
+        'Pívot':     { tiro:0.08, manejo:0.08, fisico:0.20, def:0.14, bandeja:0.12, mate:0.18, tapón:0.14, robo:0.06 },
     };
     let w = weights[p.pos] || weights['Alero'];
-    let raw = p.tiro * w.tiro + p.manejo * w.manejo + p.fisico * w.fisico + p.def * w.def + p.bandeja * w.bandeja;
+    let raw = p.tiro*w.tiro + p.manejo*w.manejo + p.fisico*w.fisico + p.def*w.def
+            + p.bandeja*w.bandeja + p.mate*w.mate + (p['tapón']||p.tapón||65)*w.tapón + p.robo*w.robo;
     return Math.round(raw);
 }
 
+function toggleEntrenar() {
+    let panel = document.getElementById('panel-entrenar');
+    if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
 function getAttrCost(val) {
-    if (val >= 90) return 8000;
+    if (val >= 90) return 8500;
     if (val >= 85) return 4000;
-    if (val >= 80) return 1500;
-    if (val >= 75) return 600;
-    if (val >= 70) return 250;
-    return 100;
+    if (val >= 80) return 1800;
+    if (val >= 75) return 650;
+    if (val >= 70) return 200;
+    return 75; 
 }
 
 function trainAttr(attr) {
@@ -436,7 +498,7 @@ function trainAttr(attr) {
     p[attr] += 1;
     p.ovr = Math.min(capOvr, calcOvr());
 
-    const nombres = { fisico:'FÍSICO', tiro:'TIRO', def:'DEFENSA', manejo:'MANEJO', bandeja:'BANDEJA' };
+    const nombres = { fisico:'FÍSICO', tiro:'TIRO', def:'DEFENSA', manejo:'MANEJO', bandeja:'BANDEJA', mate:'MATE', 'tapón':'TAPÓN', robo:'ROBO' };
     escribirDialogo(`💪 ${nombres[attr]} subido a ${p[attr]}. OVR: ${p.ovr}.`);
     evalRole(); updateUI(); renderMenu();
 }
@@ -454,14 +516,14 @@ function renderMenu() {
     let btnText = p.isCopa ? `▶ JUGAR COPA (${p.copaStage})` : (p.isPlayoffs ? `▶ JUGAR ${p.playoffStage}` : "▶ JUGAR PARTIDO");
     let btnBorder = p.isCopa ? 'border-color: #0ff; color: #0ff;' : (p.isPlayoffs ? 'border-color: gold; color: gold;' : '');
     
-    let costMod = p.personality === "deportista" ? Math.floor(getAttrCost(65) * 0.8) : getAttrCost(65);
-
-    // Costes individuales por atributo
-    let cFis = p.personality==="deportista" ? Math.floor(getAttrCost(p.fisico)*0.8) : getAttrCost(p.fisico);
-    let cTir = p.personality==="deportista" ? Math.floor(getAttrCost(p.tiro)*0.8)   : getAttrCost(p.tiro);
-    let cDef = p.personality==="deportista" ? Math.floor(getAttrCost(p.def)*0.8)    : getAttrCost(p.def);
-    let cMan = p.personality==="deportista" ? Math.floor(getAttrCost(p.manejo)*0.8) : getAttrCost(p.manejo);
-    let cBan = p.personality==="deportista" ? Math.floor(getAttrCost(p.bandeja)*0.8): getAttrCost(p.bandeja);
+    let cFis = p.personality==="deportista" ? Math.floor(getAttrCost(p.fisico)*0.8)  : getAttrCost(p.fisico);
+    let cTir = p.personality==="deportista" ? Math.floor(getAttrCost(p.tiro)*0.8)    : getAttrCost(p.tiro);
+    let cDef = p.personality==="deportista" ? Math.floor(getAttrCost(p.def)*0.8)     : getAttrCost(p.def);
+    let cMan = p.personality==="deportista" ? Math.floor(getAttrCost(p.manejo)*0.8)  : getAttrCost(p.manejo);
+    let cBan = p.personality==="deportista" ? Math.floor(getAttrCost(p.bandeja)*0.8) : getAttrCost(p.bandeja);
+    let cMat = p.personality==="deportista" ? Math.floor(getAttrCost(p.mate)*0.8)    : getAttrCost(p.mate);
+    let cTap = p.personality==="deportista" ? Math.floor(getAttrCost(p['tapón'])*0.8): getAttrCost(p['tapón']);
+    let cRob = p.personality==="deportista" ? Math.floor(getAttrCost(p.robo)*0.8)    : getAttrCost(p.robo);
 
     let act = document.getElementById('actions');
     if(!act) return;
@@ -472,22 +534,28 @@ function renderMenu() {
             <span>QUÍMICA: ${p.chem}%</span>
         </div>
         <button onclick="play()" class="btn-main" style="${btnBorder}">${btnText}</button>
-        <div style="background:#111; border:1px solid #333; border-radius:4px; padding:6px; margin-top:2px;">
-            <div style="color:#0f0; font-size:0.55em; text-align:center; margin-bottom:5px; letter-spacing:1px;">💪 ENTRENAR ATRIBUTO</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">
-                <button onclick="trainAttr('fisico')" class="btn-main" style="font-size:0.55em; padding:5px; text-transform:none;">🏃 FÍS ${p.fisico} — ${cFis}€</button>
-                <button onclick="trainAttr('tiro')" class="btn-main" style="font-size:0.55em; padding:5px; text-transform:none;">🎯 TIR ${p.tiro} — ${cTir}€</button>
-                <button onclick="trainAttr('def')" class="btn-main" style="font-size:0.55em; padding:5px; text-transform:none;">🛡️ DEF ${p.def} — ${cDef}€</button>
-                <button onclick="trainAttr('manejo')" class="btn-main" style="font-size:0.55em; padding:5px; text-transform:none;">🏀 MAN ${p.manejo} — ${cMan}€</button>
-            </div>
-            <button onclick="trainAttr('bandeja')" class="btn-main" style="width:100%; font-size:0.55em; padding:5px; margin-top:4px; text-transform:none;">🤸 BAN ${p.bandeja} — ${cBan}€</button>
-        </div>
         <div style="display:flex; gap:5px;">
+            <button onclick="toggleEntrenar()" class="btn-main" style="flex:1;">💪 ENTRENAR</button>
             <button onclick="mostrarPremios()" class="btn-main" style="flex:1; border-color:#0ff; color:#0ff;">🏆 PREMIOS</button>
+        </div>
+        <div id="panel-entrenar" style="display:none; background:#111; border:1px solid #333; border-radius:4px; padding:6px; margin-top:2px;">
+            <div style="color:#0f0; font-size:0.55em; text-align:center; margin-bottom:5px; letter-spacing:1px;">💪 ELIGE ATRIBUTO A MEJORAR</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">
+                <button onclick="trainAttr('fisico')"  class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">🏃 FÍS ${p.fisico} — ${cFis}€</button>
+                <button onclick="trainAttr('tiro')"    class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">🎯 TIR ${p.tiro} — ${cTir}€</button>
+                <button onclick="trainAttr('manejo')"  class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">🏀 MAN ${p.manejo} — ${cMan}€</button>
+                <button onclick="trainAttr('bandeja')" class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">🤸 BAN ${p.bandeja} — ${cBan}€</button>
+                <button onclick="trainAttr('mate')"    class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">💥 MAT ${p.mate} — ${cMat}€</button>
+                <button onclick="trainAttr('def')"     class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">🛡️ DEF ${p.def} — ${cDef}€</button>
+                <button onclick="trainAttr('tapón')"   class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">✋ TAP ${p['tapón']} — ${cTap}€</button>
+                <button onclick="trainAttr('robo')"    class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">⚡ ROB ${p.robo} — ${cRob}€</button>
+            </div>
+        </div>
         <div style="display:flex; gap:5px;">
             <button onclick="renderVidaPrivada()" class="btn-main" style="flex:1; border-color: gold; color: gold;">💵 VIDA PRIVADA</button>
             <button onclick="pedirTraspaso()" class="btn-main btn-trade" style="flex:1;" ${p.isPlayoffs || p.isCopa ? 'disabled' : ''}>🔄 TRASPASO</button>
         </div>
+        <button onclick="renderAnimaciones()" class="btn-main" style="border-color: #0ff; color: #0ff; margin-top:5px; margin-bottom:5px; width:100%;">🎬 ANIMACIONES</button>
         <div style="display:flex; gap:5px; margin-bottom:5px;">
             <button onclick="abrirPerfil()" class="btn-main" style="flex:1; border-color: #555; color: #ccc; margin:0; padding:8px; font-size:0.65em;">📊 PERFIL</button>
             <button onclick="abrirEquipos()" class="btn-main" style="flex:1; border-color: #555; color: #ccc; margin:0; padding:8px; font-size:0.65em;">⛹️ EQUIPOS</button>
@@ -502,9 +570,6 @@ function renderMenu() {
     guardarPartida();
 }
 
-// ---------------------------------------------------------------------
-// CUADRO DE PLAYOFFS REALISTA (8 EQUIPOS, 4 RONDAS)
-// ---------------------------------------------------------------------
 function verCuadroPlayoffs() {
     let title = p.fase === 1 ? "CUADRO PLAYOFFS ACB" : "CUADRO PLAYOFFS NBA";
     
@@ -515,24 +580,21 @@ function verCuadroPlayoffs() {
         
         <div style="display:flex; justify-content:space-between; font-size:0.5em; text-align:center;">
             
-            <!-- CONFERENCIA / LADO IZQUIERDO -->
             <div style="flex:1.2; border-right:1px solid #333; padding-right:5px;">
                 <b style="color:#0ff; display:block; margin-bottom:5px; font-size:1.2em;">${p.fase===1 ? 'LLAVES A' : 'OESTE'}</b>
-                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='PRIMERA RONDA' ? 'border-color:var(--accent); color:var(--accent);' : ''}">1º vs 8º / 4º vs 5º</div>
-                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='SEMIFINAL CONF' ? 'border-color:var(--accent); color:var(--accent);' : ''}">SEMIFINAL CONF</div>
+                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='PRIMERA RONDA' || p.playoffStage==='CUARTOS' ? 'border-color:var(--accent); color:var(--accent);' : ''}">1º vs 8º / 4º vs 5º</div>
+                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='SEMIFINAL CONF' || p.playoffStage==='SEMIFINAL' ? 'border-color:var(--accent); color:var(--accent);' : ''}">SEMIFINAL CONF</div>
                 <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='FINAL CONF' ? 'border-color:var(--accent); color:var(--accent);' : ''}">FINAL CONF</div>
             </div>
             
-            <!-- CENTRO / GRAN FINAL -->
             <div style="flex:1; display:flex; align-items:center; justify-content:center; flex-direction:column; padding:0 8px;">
                 <div style="border:2px solid gold; padding:10px; background:#222; font-weight:bold; width:100%; border-radius:4px; font-size:1.1em; ${p.playoffStage==='GRAN FINAL' ? 'box-shadow:0 0 10px gold;' : ''}">FINAL</div>
             </div>
             
-            <!-- CONFERENCIA / LADO DERECHO -->
             <div style="flex:1.2; border-left:1px solid #333; padding-left:5px;">
                 <b style="color:#0ff; display:block; margin-bottom:5px; font-size:1.2em;">${p.fase===1 ? 'LLAVES B' : 'ESTE'}</b>
-                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='PRIMERA RONDA' ? 'border-color:var(--accent); color:var(--accent);' : ''}">2º vs 7º / 3º vs 6º</div>
-                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='SEMIFINAL CONF' ? 'border-color:var(--accent); color:var(--accent);' : ''}">SEMIFINAL CONF</div>
+                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='PRIMERA RONDA' || p.playoffStage==='CUARTOS' ? 'border-color:var(--accent); color:var(--accent);' : ''}">2º vs 7º / 3º vs 6º</div>
+                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='SEMIFINAL CONF' || p.playoffStage==='SEMIFINAL' ? 'border-color:var(--accent); color:var(--accent);' : ''}">SEMIFINAL CONF</div>
                 <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='FINAL CONF' ? 'border-color:var(--accent); color:var(--accent);' : ''}">FINAL CONF</div>
             </div>
 
@@ -733,6 +795,66 @@ function checkPatrocinios() {
     }
 }
 
+function renderAnimaciones() {
+    let act = document.getElementById('actions');
+    if(!act) return;
+    
+    let html = `
+        <div style="font-size: 0.7em; color: #0ff; margin-bottom: 10px; text-align:center; font-weight:bold;">--- 🎬 ANIMACIONES Y ESTILO ---</div>
+        <div style="font-size: 0.55em; color: #ccc; margin-bottom: 10px; text-align:center;">Mejora tus movimientos para obtener % de ventaja real en la cancha.</div>
+    `;
+    
+    Object.keys(DB_ANIMACIONES).forEach(cat => {
+        html += `<div style="margin-bottom: 10px; border: 1px solid #333; padding: 6px; border-radius: 4px; background: rgba(0,0,0,0.4);">`;
+        html += `<div style="color: var(--accent); font-size: 0.65em; text-transform: uppercase; margin-bottom: 8px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 3px;">🏀 ${cat}</div>`;
+        
+        DB_ANIMACIONES[cat].forEach(anim => {
+            let isOwned = p.animCompradas.includes(anim.id);
+            let isEquipped = p.animEquipadas[cat] === anim.id;
+            
+            let btnText = isEquipped ? "✅ EQUIPADO" : (isOwned ? "🔄 EQUIPAR" : `🛒 ${anim.precio}€`);
+            let btnStyle = isEquipped ? "border-color: var(--success); color: var(--success);" : (isOwned ? "border-color: #0ff; color: #0ff;" : "border-color: #888; color: #ccc;");
+            
+            html += `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px; font-size: 0.6em; background: #111; padding: 5px; border-radius: 3px;">
+                <div style="flex:1; padding-right: 10px;">
+                    <b style="color:#fff; font-size:1.1em;">${anim.nombre}</b> <br>
+                    <span style="color:#aaa;">${anim.desc}</span>
+                </div>
+                <button onclick="comprarOEquiparAnim('${cat}', '${anim.id}', ${anim.precio})" class="btn-main" style="width: auto; padding: 6px 10px; font-size: 0.85em; text-transform:none; margin:0; ${btnStyle}" ${isEquipped ? 'disabled' : ''}>
+                    ${btnText}
+                </button>
+            </div>`;
+        });
+        html += `</div>`;
+    });
+    
+    html += `<button onclick="renderMenu()" class="btn-main" style="border-color: #555; color: #ccc; margin-top:5px;">⬅ VOLVER</button>`;
+    act.innerHTML = html;
+}
+
+function comprarOEquiparAnim(cat, id, precio) {
+    let animInfo = DB_ANIMACIONES[cat].find(a => a.id === id);
+    
+    if (p.animCompradas.includes(id)) {
+        p.animEquipadas[cat] = id;
+        escribirDialogo(`🎬 Has equipado tu animación de ${cat}: <b>${animInfo.nombre}</b>.`);
+    } else {
+        if (p.money >= precio) {
+            p.money -= precio;
+            p.animCompradas.push(id);
+            p.animEquipadas[cat] = id; 
+            escribirDialogo(`🛒 Compra exitosa. Has equipado <b>${animInfo.nombre}</b>. Ahora tienes una ventaja en tus partidos.`);
+            updateUI();
+        } else {
+            alert(`Fondos insuficientes. Cuesta ${precio}€ y tienes ${p.money}€.`);
+            return;
+        }
+    }
+    guardarPartida();
+    renderAnimaciones();
+}
+
 // =====================================================================
 // 5. MOTOR DE PARTIDO Y ESTADÍSTICAS
 // =====================================================================
@@ -829,12 +951,12 @@ function getProbabilidad(accion) {
     
     if (p.fase === 0) mod += 2; 
 
-    let baseProb = (accion==='m') ? p.fisico :
+    let baseProb = (accion==='m') ? p.mate :
                    (accion==='b') ? p.bandeja :
                    (accion==='t') ? p.tiro :
                    (accion==='a') ? p.manejo :
-                   (accion==='ro') ? p.def-5 :
-                   (accion==='ta') ? p.def : Math.max(p.fisico,p.def)+10;
+                   (accion==='ro') ? p.robo :
+                   (accion==='ta') ? p['tapón'] : Math.max(p.fisico, p.def)+10;
                    
     let proNerf = p.fase === 1 ? 15 : (p.fase === 2 ? 10 : 0); 
     
@@ -844,7 +966,8 @@ function getProbabilidad(accion) {
 
     let fatiga = Math.floor(match.j * 1.0); 
 
-    let finalProb = baseProb + mod - proNerf - (GLOBAL_DIFF * 10) + chemMod - fatiga;
+    let bonusAnimacion = getAnimBonus(accion);
+    let finalProb = baseProb + mod - proNerf - (GLOBAL_DIFF * 10) + chemMod - fatiga + bonusAnimacion;
     
     if (accion === 'ro' || accion === 'ta') finalProb -= 10; 
     if (p.ovr >= 75 && p.ovr <= 85) finalProb -= 5;
@@ -870,6 +993,24 @@ function getPlayTime(j, totalPlays) {
     return `${q}Q | ${m<10?'0'+m:m}:${s<10?'0'+s:s}`;
 }
 
+// UTILIDAD PARA SACAR COMENTARIOS DINÁMICOS
+function getMsgRes(tipo, result) {
+    if (typeof COMENTARIOS_RESULTADOS !== 'undefined' && COMENTARIOS_RESULTADOS[tipo] && COMENTARIOS_RESULTADOS[tipo][result]) {
+        let arr = COMENTARIOS_RESULTADOS[tipo][result];
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+    return result === 'ok' ? "¡Buena jugada!" : "Falla la acción.";
+}
+
+function getMsgFalta(tipo) {
+    let key = 'falta_' + tipo;
+    if (typeof COMENTARIOS_RESULTADOS !== 'undefined' && COMENTARIOS_RESULTADOS[key]) {
+        let arr = COMENTARIOS_RESULTADOS[key];
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+    return "¡Falta personal! Va a la línea de tiros libres.";
+}
+
 function next() {
     if (match.j >= match.numPlays) {
         return finish();
@@ -885,81 +1026,167 @@ function next() {
     updateScoreboard();
     
     let tipo = match.pool[match.j];
+    
+    // COMPROBACIÓN DE MOMENTO DECISIVO
+    let diferenciaPuntos = Math.abs(match.myScore - match.rivScore);
+    let esUltimaJugada = (match.j === match.numPlays - 1);
+    let esClutch = esUltimaJugada && diferenciaPuntos <= 3 && tipo === "ATAQUE";
+
     let html = `
     <div class="dialog-box log-entry">
-        <span style="font-size:0.7em; color:var(--accent);">SITUACIÓN: ${tipo}</span>
-        <div class="action-btns" id="btns-${match.j}" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">`;
+        <span style="font-size:0.7em; color:var(--accent); font-weight:bold;">SITUACIÓN: ${tipo} ${esClutch ? '🔥 MOMENTO CLUTCH 🔥' : ''}</span>
+        <div class="action-btns" id="btns-${match.j}" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top:10px;">`;
     
-    if (tipo === "ATAQUE") {
+    if (esClutch) {
+        let comentarioRandom = typeof COMENTARIOS_DECISIVOS !== 'undefined' ? COMENTARIOS_DECISIVOS[Math.floor(Math.random() * COMENTARIOS_DECISIVOS.length)] : "¡Tensión en la cancha!";
         html += `
-            <button onclick="res('m', ${match.j})">MATE [${getProbabilidad('m')}%]</button>
-            <button onclick="res('b', ${match.j})">BANDEJA [${getProbabilidad('b')}%]</button>
-            <button onclick="res('t', ${match.j})">TRIPLE [${getProbabilidad('t')}%]</button>
-            <button onclick="res('a', ${match.j})">ASISTIR [${getProbabilidad('a')}%]</button>`;
+            <div style="grid-column: span 2; font-size: 0.75em; font-style: italic; color: #fff; background: linear-gradient(90deg, rgba(255,215,0,0.2) 0%, rgba(255,140,0,0.5) 50%, rgba(255,215,0,0.2) 100%); border: 1px solid gold; border-radius: 5px; padding: 10px; text-align: center; margin-bottom: 12px; text-shadow: 0 0 5px gold; box-shadow: 0 0 10px rgba(255,215,0,0.5);">
+                ${comentarioRandom}
+            </div>
+            <button onclick="res('clutch_tl', ${match.j})" style="grid-column: span 2; border-color: gold; color: gold; box-shadow: 0 0 5px gold;">🎯 TIRAR TIROS LIBRES DECISIVOS [${Math.min(90, p.tiro + 5)}%]</button>
+            <button onclick="res('t', ${match.j})" style="grid-column: span 2;">TRIPLE HEROICO [${getProbabilidad('t')}%]</button>
+        `;
     } else {
-        html += `
-            <button onclick="res('ro', ${match.j})">ROBO [${getProbabilidad('ro')}%]</button>
-            <button onclick="res('ta', ${match.j})">TAPÓN [${getProbabilidad('ta')}%]</button>
-            <button onclick="res('re', ${match.j})">REBOTE [${getProbabilidad('re')}%]</button>
-            <button disabled style="border:none;"></button>`;
+        let comentarioNormal = typeof COMENTARIOS_NORMALES !== 'undefined' ? COMENTARIOS_NORMALES[Math.floor(Math.random() * COMENTARIOS_NORMALES.length)] : "";
+        if(comentarioNormal) {
+            html += `
+            <div style="grid-column: span 2; font-size: 0.65em; font-style: italic; color: #0ff; background: rgba(0, 255, 255, 0.1); border-left: 3px solid #0ff; padding: 8px; text-align: center; margin-bottom: 12px; text-shadow: 0 0 3px #0ff;">
+                ${comentarioNormal}
+            </div>`;
+        }
+        
+        if (tipo === "ATAQUE") {
+            html += `
+                <button onclick="res('m', ${match.j})">MATE [${getProbabilidad('m')}%]</button>
+                <button onclick="res('b', ${match.j})">BANDEJA [${getProbabilidad('b')}%]</button>
+                <button onclick="res('t', ${match.j})">TRIPLE [${getProbabilidad('t')}%]</button>
+                <button onclick="res('a', ${match.j})">ASISTIR [${getProbabilidad('a')}%]</button>`;
+        } else {
+            html += `
+                <button onclick="res('ro', ${match.j})">ROBO [${getProbabilidad('ro')}%]</button>
+                <button onclick="res('ta', ${match.j})">TAPÓN [${getProbabilidad('ta')}%]</button>
+                <button onclick="res('re', ${match.j})">REBOTE [${getProbabilidad('re')}%]</button>
+                <button disabled style="border:none;"></button>`;
+        }
     }
-    html += `</div><div id="res-${match.j}" style="margin-top: 15px; font-size: 0.7em;"></div></div>`;
+    html += `</div><div id="res-${match.j}" style="margin-top: 15px; font-size: 0.75em; text-align:center;"></div></div>`;
     
     let gl = document.getElementById('game-log');
     if(gl) gl.insertAdjacentHTML('beforeend', html); 
     scrollToBottom();
 }
 
+function tirarTirosLibres(numTiros, id, callback) {
+    let ptsLogrados = 0;
+    let probTiroLibre = Math.max(30, Math.min(95, p.tiro + 10)); 
+    let mensaje = "Tiros libres: ";
+
+    for(let i = 0; i < numTiros; i++) {
+        p.stats.tcAttempt++; 
+        if (Math.random() * 100 < probTiroLibre) {
+            ptsLogrados++;
+            p.stats.tcMake++;
+            mensaje += "🟢 ";
+        } else {
+            mensaje += "🔴 ";
+        }
+    }
+    
+    match.ok += ptsLogrados;
+    match.myScore += ptsLogrados;
+    match.pts += ptsLogrados;
+    p.stats.pts += ptsLogrados;
+
+    updateScoreboard();
+    
+    let colorFinal = ptsLogrados > 0 ? 'var(--success)' : 'var(--danger)';
+    let colorFondo = ptsLogrados > 0 ? '0,255,0' : '255,0,0';
+
+    let rd = document.getElementById(`res-${id}`);
+    if(rd) rd.innerHTML = `<div style="background: rgba(${colorFondo}, 0.1); border: 1px solid ${colorFinal}; padding: 8px; border-radius: 4px;"><b style="color:${colorFinal}; text-shadow: 0 0 5px ${colorFinal};">🎙️: "${mensaje} (+${ptsLogrados} PTS)"</b></div>`;
+    
+    setTimeout(callback, 1500);
+}
+
 function res(tipo, id) {
     document.querySelectorAll(`#btns-${id} button`).forEach(b => b.disabled = true);
     
+    if (tipo === 'clutch_tl') {
+        return tirarTirosLibres(2, id, () => { match.j++; scrollToBottom(); next(); });
+    }
+
     let ok = (Math.random() * 100 < getProbabilidad(tipo)); 
     let msg = ""; 
     let pts = 0;
+    let faltaForzada = false;
     
     if(['m','t','b'].includes(tipo)) p.stats.tcAttempt++;
     if(tipo==='t') p.stats.t3Attempt++;
 
     if(tipo === 'm') { 
-        if(ok){ pts=2; match.tc++; p.stats.tcMake++; msg=`¡Póster brutal!`; } 
-        else { msg=`Bloqueado por la defensa.`; } 
+        if(ok){ pts=2; match.tc++; p.stats.tcMake++; msg=getMsgRes('m', 'ok'); } 
+        else if (Math.random() < 0.25) { faltaForzada = true; msg=getMsgFalta('m'); }
+        else { msg=getMsgRes('m', 'fail'); } 
     }
     else if(tipo === 'b') { 
-        if(ok){ pts=2; match.tc++; p.stats.tcMake++; msg=`¡Bandeja con mucha clase!`; } 
-        else { msg=`Falla la bandeja bajo el aro.`; } 
+        if(ok){ pts=2; match.tc++; p.stats.tcMake++; msg=getMsgRes('b', 'ok'); } 
+        else if (Math.random() < 0.20) { faltaForzada = true; msg=getMsgFalta('b'); }
+        else { msg=getMsgRes('b', 'fail'); } 
     }
     else if(tipo === 't') { 
-        if(ok){ pts=3; match.tc++; p.stats.tcMake++; p.stats.t3Make++; msg=`¡Triple limpio!`; } 
-        else { msg=`El tiro sale fuera.`; } 
+        if(ok){ pts=3; match.tc++; p.stats.tcMake++; p.stats.t3Make++; msg=getMsgRes('t', 'ok'); } 
+        else if (Math.random() < 0.10) { faltaForzada = true; msg=getMsgFalta('t'); }
+        else { msg=getMsgRes('t', 'fail'); } 
     }
     else if(tipo === 'a') { 
-        if(ok){ pts=2; match.ast++; msg=`Asistencia de manual.`; } 
-        else { msg=`Pase interceptado.`; } 
+        if(ok){ pts=2; match.ast++; msg=getMsgRes('a', 'ok'); } 
+        else { msg=getMsgRes('a', 'fail'); } 
     }
     else if(tipo === 'ro') { 
-        if(ok){ match.rob++; match.rivScore -= 2; msg=`¡Gran robo! Evitas sus puntos.`; } 
-        else { msg=`Falta personal.`; } 
+        if(ok){ match.rob++; match.rivScore -= 2; msg=getMsgRes('ro', 'ok'); } 
+        else { msg=getMsgRes('ro', 'fail'); } 
     }
     else if(tipo === 'ta') { 
-        if(ok){ match.tap++; match.rivScore -= 2; msg=`¡Tapón tremendo! Frenas su ataque.`; } 
-        else { msg=`Llega tarde, canasta rival.`; } 
+        if(ok){ match.tap++; match.rivScore -= 2; msg=getMsgRes('ta', 'ok'); } 
+        else { msg=getMsgRes('ta', 'fail'); } 
     }
     else if(tipo === 're') { 
-        if(ok){ match.reb++; match.rivScore -= 2; msg=`Rebote defensivo asegurado.`; } 
-        else { msg=`Pierde el rebote.`; } 
+        if(ok){ match.reb++; match.rivScore -= 2; msg=getMsgRes('re', 'ok'); } 
+        else { msg=getMsgRes('re', 'fail'); } 
+    }
+
+    if (faltaForzada) {
+        let rd = document.getElementById(`res-${id}`);
+        if(rd) rd.innerHTML = `<div style="background: rgba(255,215,0,0.1); border: 1px solid gold; padding: 8px; border-radius: 4px;"><b style="color:gold; text-shadow: 0 0 5px gold;">🎙️: "${msg}"</b></div>`;
+        let numTiros = tipo === 't' ? 3 : 2;
+        setTimeout(() => tirarTirosLibres(numTiros, id, () => { match.j++; scrollToBottom(); next(); }), 1500);
+        return;
     }
 
     if(ok) { 
         match.ok++; 
         match.myScore += (['m','b','t','a'].includes(tipo)) ? pts : 0; 
         match.pts += (['m','b','t'].includes(tipo)) ? pts : 0; 
+        
+        let cat = tipo === 't' ? 'tiro' : (tipo === 'b' ? 'bandeja' : (tipo === 'm' ? 'mate' : (tipo === 'a' ? 'manejo' : null)));
+        if (cat) {
+            let animId = p.animEquipadas[cat];
+            let animObj = DB_ANIMACIONES[cat].find(a => a.id === animId);
+            if (animObj && animObj.famaBono) {
+                p.fame = Math.min(FAME_MAX, p.fame + animObj.famaBono);
+            }
+        }
     } else { 
         match.rivScore += 2; 
     }
 
     updateScoreboard(); 
+    
+    let colorFinal = ok ? 'var(--success)' : 'var(--danger)';
+    let colorFondo = ok ? '0,255,0' : '255,0,0';
+    
     let rd = document.getElementById(`res-${id}`);
-    if(rd) rd.innerHTML = `<b style="color:${ok ? 'var(--success)' : 'var(--danger)'}">🎙️: "${msg}"</b>`;
+    if(rd) rd.innerHTML = `<div style="background: rgba(${colorFondo}, 0.1); border: 1px solid ${colorFinal}; padding: 8px; border-radius: 4px;"><b style="color:${colorFinal}; text-shadow: 0 0 5px ${colorFinal};">🎙️: "${msg}"</b></div>`;
     
     match.j++; 
     scrollToBottom(); 
@@ -984,13 +1211,15 @@ function distributeStats(roster, totalPts) {
             let t = Math.min(1, (jug.o - 89) / 10);
             pts = Math.max(20, Math.min(45, (25 + t * 13) + (Math.random()*15 - 5)));
         } else {
-            pts = 8 + (jug.o / 8) + Math.random() * 8;
+            // AJUSTE DE ROOKIES: Puntos reducidos drásticamente para medias menores de 80
+            pts = 3 + (jug.o / 12) + Math.random() * 6; 
         }
 
         // Rebotes, Asistencias, Robos y Tapones con márgenes por OVR
         if (jug.o < 75) {
-            reb = 1 + Math.random() * 3; 
-            ast = 0 + Math.random() * 3; 
+            // AJUSTE DE ROOKIES: Rebotes y asistencias reducidos ligeramente
+            reb = 1 + Math.random() * 2; 
+            ast = 0 + Math.random() * 2; 
             rob = Math.random() * 1; 
             tap = Math.random() * 1;
         } else if (jug.o < 85) {
@@ -1038,25 +1267,25 @@ function finish() {
         gamePts = match.pts + Math.floor((Math.random() * 4 + (p.ovr / 10)) * roleMult);
     }
 
-    // Márgenes estrictos para Stats Secundarias basados en OVR
+    // AJUSTE PARA EL JUGADOR: Asistencias y rebotes suben UN POCO (+1 en los márgenes de todas las medias)
     if (p.ovr < 75) {
-        minAst = 1; maxAst = 4; 
-        minReb = 2; maxReb = 5; 
+        minAst = 2; maxAst = 5; 
+        minReb = 3; maxReb = 6; 
         minRob = 0; maxRob = 1; 
         minTap = 0; maxTap = 1;
     } else if (p.ovr < 85) {
-        minAst = 3; maxAst = 7; 
-        minReb = 4; maxReb = 8; 
+        minAst = 4; maxAst = 8; 
+        minReb = 5; maxReb = 9; 
         minRob = 0; maxRob = 2; 
         minTap = 0; maxTap = 2;
     } else if (p.ovr < 92) {
-        minAst = 5; maxAst = 10; 
-        minReb = 6; maxReb = 11; 
+        minAst = 6; maxAst = 11; 
+        minReb = 7; maxReb = 12; 
         minRob = 1; maxRob = 3; 
         minTap = 1; maxTap = 3;
     } else {
-        minAst = 7; maxAst = 14; 
-        minReb = 8; maxReb = 14; 
+        minAst = 8; maxAst = 15; 
+        minReb = 9; maxReb = 15; 
         minRob = 1; maxRob = 4; 
         minTap = 1; maxTap = 4;
     }
@@ -1129,6 +1358,7 @@ function finish() {
         p.teamData.pts += gamePts;
     }
     
+    // NERF DE FAMA POR VICTORIA
     let fameChange = 0;
     
     if (gamePts >= 20) { 
@@ -1151,7 +1381,6 @@ function finish() {
     }
 
     if (win) { 
-        fameChange += 0.2; 
         p.chem += 2; 
         p.stats.lossStreak = 0; 
         if (match.rival.ovr > getMyTeamOvr()) fameChange += 0.3; 
@@ -1181,7 +1410,7 @@ function finish() {
 
     checkPatrocinios();
 
-    let sueldo = p.role === "Estrella" ? 400 : (p.role === "Titular" ? 200 : 150);
+    let sueldo = p.role === "Estrella" ? 450 : (p.role === "Titular" ? 250 : 200);
     let extraSponsor = 0;
     if (p.sponsor === "Deportes Paco") extraSponsor = 50;
     if (p.sponsor === "Kicks Brand") extraSponsor = 150;
@@ -1222,23 +1451,34 @@ function finish() {
     let partidosTemporada = (p.fase === 0) ? (numEquiposConf - 1) * 2 : (leagueTable.length - 1) * 2;
 
     if (p.sMatches === Math.floor(partidosTemporada / 2) && !p.copaPlayedThisSeason && !p.isPlayoffs && !p.isCopa) {
-        let misEquipos = p.fase === 0 ? leagueTable.filter(t => t.conf === p.teamData.conf) : leagueTable;
-        misEquipos.sort((a,b) => b.v - a.v);
-        let miPos = misEquipos.findIndex(t => t.name === p.team) + 1;
         p.copaPlayedThisSeason = true;
+        let clasificadosCopa = [];
         
-        if (miPos <= 8) {
+        if (p.fase === 0) {
+            for(let i=1; i<=4; i++) {
+                let confT = leagueTable.filter(t => t.conf === i).sort((a,b) => b.v - a.v);
+                if(confT[0]) clasificadosCopa.push(confT[0]);
+                if(confT[1]) clasificadosCopa.push(confT[1]);
+            }
+            clasificadosCopa.sort((a,b) => b.v - a.v);
+        } else {
+            clasificadosCopa = [...leagueTable].sort((a,b) => b.v - a.v).slice(0, 8);
+        }
+        
+        let miPos = clasificadosCopa.findIndex(t => t.name === p.team) + 1;
+        
+        if (miPos > 0 && miPos <= 8) {
             p.isCopa = true;
             p.copaStage = "CUARTOS";
-            p.copaRival = misEquipos[7 - (miPos - 1)]; 
+            p.copaRival = clasificadosCopa[8 - miPos]; 
             if(!p.copaRival || p.copaRival.name === p.team) {
-                p.copaRival = misEquipos.find(t => t.name !== p.team); 
+                p.copaRival = clasificadosCopa.find(t => t.name !== p.team); 
             }
             escribirDialogo(`🏆 ¡CLASIFICADOS PARA LA COPA! Entramos como ${miPos}º a mitad de temporada y jugaremos contra ${p.copaRival.name}.`);
             setTimeout(renderMenu, 5000);
             return;
         } else {
-            escribirDialogo(`❌ No nos hemos clasificado para la Copa (${miPos}º a mitad de temporada). Toca verla por la tele.`);
+            escribirDialogo(`❌ No nos hemos clasificado para la Copa (Top 2 de cada conf. en Junior). Toca verla por la tele.`);
         }
     }
 
@@ -1286,11 +1526,41 @@ function finish() {
     // ==========================================
     if (p.isPlayoffs) {
         if (p.fase === 0) { 
-            if (p.playoffStage === "SEMIFINAL") {
+            if (p.playoffStage === "CUARTOS") {
+                if (win) {
+                    p.playoffStage = "SEMIFINAL";
+                    let b = p.playoffBracket || {};
+                    if (b.seedMiPos === 1 || b.seedMiPos === 8) p.playoffRival = b.win4v5;
+                    else if (b.seedMiPos === 4 || b.seedMiPos === 5) p.playoffRival = b.win1v8;
+                    else if (b.seedMiPos === 2 || b.seedMiPos === 7) p.playoffRival = b.win3v6;
+                    else if (b.seedMiPos === 3 || b.seedMiPos === 6) p.playoffRival = b.win2v7;
+
+                    if(!p.playoffRival || p.playoffRival.name === p.team) {
+                        p.playoffRival = leagueTable.find(t=>t.name !== p.team);
+                    }
+                    escribirDialogo(`🏆 ¡Pasamos a Semis contra ${p.playoffRival.name}!`);
+                    setTimeout(renderMenu, 4000);
+                } else {
+                    escribirDialogo(`❌ Eliminados en Cuartos de Final.`); 
+                    setTimeout(draft, 4000); 
+                }
+            } else if (p.playoffStage === "SEMIFINAL") {
                 if (win) { 
                     p.playoffStage = "GRAN FINAL"; 
-                    p.playoffRival = p.playoffOtherWinner; 
-                    escribirDialogo(`🏆 ¡A LA FINAL contra ${p.playoffRival.name}!`); 
+                    let b = p.playoffBracket || {};
+                    let finalistaArriba = (b.win1v8 && b.win4v5) ? (b.win1v8.v > b.win4v5.v ? b.win1v8 : b.win4v5) : leagueTable[0];
+                    let finalistaAbajo = (b.win2v7 && b.win3v6) ? (b.win2v7.v > b.win3v6.v ? b.win2v7 : b.win3v6) : leagueTable[1];
+
+                    if (b.seedMiPos === 1 || b.seedMiPos === 8 || b.seedMiPos === 4 || b.seedMiPos === 5) {
+                        p.playoffRival = finalistaAbajo;
+                    } else {
+                        p.playoffRival = finalistaArriba;
+                    }
+                    if(!p.playoffRival || p.playoffRival.name === p.team) {
+                        p.playoffRival = leagueTable.find(t=>t.name !== p.team);
+                    }
+
+                    escribirDialogo(`🏆 ¡A LA GRAN FINAL contra ${p.playoffRival.name}!`); 
                     setTimeout(renderMenu, 4000); 
                 } else { 
                     escribirDialogo(`❌ Eliminados en Semis.`); 
@@ -1312,7 +1582,6 @@ function finish() {
                     let b = p.playoffBracket || {};
                     let confTeams = leagueTable.filter(t => t.conf === p.teamData.conf).sort((a,b) => b.v - a.v);
                     
-                    // Tu rival de Semifinales es estrictamente el ganador de la llave cruzada
                     if (b.seedMiPos) {
                         if (b.seedMiPos === 1 || b.seedMiPos === 8) p.playoffRival = b.win4v5;
                         else if (b.seedMiPos === 4 || b.seedMiPos === 5) p.playoffRival = b.win1v8;
@@ -1391,29 +1660,46 @@ function finish() {
         }
     } else {
         // ==========================================
-        // FIN TEMPORADA REGULAR Y CLASIFICACIÓN A PLAYOFFS (8 EQUIPOS / PLAY-IN)
+        // FIN TEMPORADA REGULAR Y CLASIFICACIÓN A PLAYOFFS
         // ==========================================
         if(p.sMatches >= partidosTemporada) {
             if (p.fase === 0) {
-                let c1 = leagueTable.filter(t => t.conf === 1).sort((a,b) => b.v - a.v)[0];
-                let c2 = leagueTable.filter(t => t.conf === 2).sort((a,b) => b.v - a.v)[0];
-                let c3 = leagueTable.filter(t => t.conf === 3).sort((a,b) => b.v - a.v)[0];
-                let c4 = leagueTable.filter(t => t.conf === 4).sort((a,b) => b.v - a.v)[0];
+                let clasificadosPlayoff = [];
+                for(let i=1; i<=4; i++) {
+                    let confT = leagueTable.filter(t => t.conf === i).sort((a,b) => b.v - a.v);
+                    if(confT[0]) clasificadosPlayoff.push(confT[0]);
+                    if(confT[1]) clasificadosPlayoff.push(confT[1]);
+                }
+                clasificadosPlayoff.sort((a,b) => b.v - a.v);
                 
-                let ganadores = [c1, c2, c3, c4];
-                if(ganadores.find(t => t && t.name === p.team)) {
+                let miPos = clasificadosPlayoff.findIndex(t => t.name === p.team) + 1;
+                
+                if(miPos > 0 && miPos <= 8) {
                     p.isPlayoffs = true; 
-                    p.playoffStage = "SEMIFINAL";
+                    p.playoffStage = "CUARTOS";
                     
-                    if (p.teamData.conf === 1) { p.playoffRival = c2; p.playoffOtherWinner = c3.v > c4.v ? c3 : c4; }
-                    if (p.teamData.conf === 2) { p.playoffRival = c1; p.playoffOtherWinner = c3.v > c4.v ? c3 : c4; }
-                    if (p.teamData.conf === 3) { p.playoffRival = c4; p.playoffOtherWinner = c1.v > c2.v ? c1 : c2; }
-                    if (p.teamData.conf === 4) { p.playoffRival = c3; p.playoffOtherWinner = c1.v > c2.v ? c1 : c2; }
+                    p.playoffRival = clasificadosPlayoff[8 - miPos];
+                    if(!p.playoffRival || p.playoffRival.name === p.team) {
+                        p.playoffRival = clasificadosPlayoff.find(t => t.name !== p.team); 
+                    }
                     
-                    escribirDialogo(`🌟 ¡CAMPEONES DE CONFERENCIA! Entramos a Playoffs.`);
+                    let w18 = (miPos === 1 || miPos === 8) ? p.teamData : clasificadosPlayoff[0];
+                    let w45 = (miPos === 4 || miPos === 5) ? p.teamData : clasificadosPlayoff[3];
+                    let w36 = (miPos === 3 || miPos === 6) ? p.teamData : clasificadosPlayoff[2];
+                    let w27 = (miPos === 2 || miPos === 7) ? p.teamData : clasificadosPlayoff[1];
+
+                    p.playoffBracket = {
+                        seedMiPos: miPos,
+                        win1v8: w18,
+                        win4v5: w45,
+                        win3v6: w36,
+                        win2v7: w27
+                    };
+                    
+                    escribirDialogo(`🌟 ¡CLASIFICADOS A PLAYOFFS JUNIOR! Entramos como ${miPos}º del ranking general.`);
                     setTimeout(renderMenu, 5000);
                 } else { 
-                    escribirDialogo(`No ganamos la conferencia. Temporada terminada.`); 
+                    escribirDialogo(`No logramos clasificar a Playoffs Junior. Temporada terminada.`); 
                     setTimeout(draft, 4000); 
                 }
             } else if (p.fase === 1 || p.fase === 2) { 
@@ -1458,13 +1744,11 @@ function finish() {
                     p.playoffRival = miConfTeams[rivalSeed - 1] || miConfTeams[0];
                     if (p.playoffRival.name === p.team) p.playoffRival = miConfTeams[1]; 
                     
-                    // SIMULAR EL CUADRO RESTANTE CON EQUIPOS QUE SÍ CLASIFICARON (TOP 8)
                     let w18 = (finalSeed === 1 || finalSeed === 8) ? p.teamData : (Math.random() > 0.2 ? miConfTeams[0] : miConfTeams[7]);
                     let w45 = (finalSeed === 4 || finalSeed === 5) ? p.teamData : (Math.random() > 0.4 ? miConfTeams[3] : miConfTeams[4]);
                     let w36 = (finalSeed === 3 || finalSeed === 6) ? p.teamData : (Math.random() > 0.3 ? miConfTeams[2] : miConfTeams[5]);
                     let w27 = (finalSeed === 2 || finalSeed === 7) ? p.teamData : (Math.random() > 0.2 ? miConfTeams[1] : miConfTeams[6]);
                     
-                    // Prevenir posibles nulos
                     if(!w18) w18 = miConfTeams[0]; if(!w45) w45 = miConfTeams[3]; 
                     if(!w36) w36 = miConfTeams[2]; if(!w27) w27 = miConfTeams[1];
 
@@ -1554,7 +1838,7 @@ function draft() {
         if (myMvp >= bestMvp) {
             p.mvps++; 
             p.fame = Math.min(FAME_MAX, p.fame + 10);
-            escribirDialogo(`🏆 MVP: Eres el Jugador Más Valioso. ${myPPG.toFixed(1)}p ${myAPG.toFixed(1)}a ${myRPG.toFixed(1)}r por partido.`);
+            escribirDialogo(`🏆 MVP: Eres el Jugador Más Valioso. ${myPPG.toFixed(1)}p ${myAPG.toFixed(1)}r por partido.`);
         } else {
             let winner = allPlayers.sort((a,b) => mvpScore(b) - mvpScore(a))[0];
             if(winner) escribirDialogo(`🏆 MVP: ${winner.name} (${winner.team}) — ${winner.ppg.toFixed(1)}p ${winner.apg.toFixed(1)}a ${winner.rpg.toFixed(1)}r`);
@@ -1569,10 +1853,9 @@ function draft() {
             if(winner) escribirDialogo(`🛡️ DPOY: ${winner.name} (${winner.team}) — ${winner.ropg.toFixed(1)}rob ${winner.tapg.toFixed(1)}tap`);
         }
 
-        // ROOKIE: primera temporada en la liga actual — sin filtro de OVR, cualquiera puede ser rookie
         let isRookie = (p.fase === 1 && p.history.acb.matches === 0) || (p.fase === 2 && p.history.nba.matches === 0);
         if (isRookie) {
-            let rookiePool = allPlayers.filter(x => x.ovr <= p.ovr + 5); // rookies con OVR similar o menor
+            let rookiePool = allPlayers.filter(x => x.ovr <= p.ovr + 5); 
             let bestRookieScore = rookiePool.length > 0 ? Math.max(...rookiePool.map(mvpScore)) : 0;
             if (rookiePool.length === 0 || myMvp >= bestRookieScore) {
                 p.rookies++; 
@@ -1641,7 +1924,7 @@ function draft() {
             
         equiposRenova.forEach(eq => {
             let rol = p.ovr >= eq.ovr + 3 ? "Estrella" : (p.ovr >= eq.ovr - 4 ? "Titular" : "Suplente");
-            let sueldo = rol === "Estrella" ? 400 : rol === "Titular" ? 200 : 150;
+            let sueldo = rol === "Estrella" ? 450 : rol === "Titular" ? 250 : 200;
             renovHtml += `<button onclick="ejecutarAscenso(${p.fase}, '${eq.name}', '${rol}')" class="btn-main" style="text-transform:none; font-size:0.72em; margin-bottom:4px;">${eq.name} | ${rol} | ${sueldo}€/p</button>`;
         });
         
@@ -1854,11 +2137,14 @@ function retirarse(force = false) {
 function abrirPerfil() {
     let e = (id) => document.getElementById(id);
     
-    if(e('pr-tiro')) e('pr-tiro').innerText = p.tiro; 
-    if(e('pr-fisico')) e('pr-fisico').innerText = p.fisico;
+    if(e('pr-tiro'))    e('pr-tiro').innerText    = p.tiro; 
+    if(e('pr-fisico'))  e('pr-fisico').innerText  = p.fisico;
     if(e('pr-bandeja')) e('pr-bandeja').innerText = p.bandeja;
-    if(e('pr-manejo')) e('pr-manejo').innerText = p.manejo; 
-    if(e('pr-def')) e('pr-def').innerText = p.def;
+    if(e('pr-manejo'))  e('pr-manejo').innerText  = p.manejo; 
+    if(e('pr-def'))     e('pr-def').innerText     = p.def;
+    if(e('pr-mate'))    e('pr-mate').innerText    = p.mate;
+    if(e('pr-tapón'))   e('pr-tapón').innerText   = p['tapón'];
+    if(e('pr-robo'))    e('pr-robo').innerText    = p.robo;
     if(e('pr-ovr')) e('pr-ovr').innerText = p.ovr; 
     
     let cur = (p.fase===0) ? "junior" : (p.fase===1 ? "acb" : "nba");
@@ -1945,7 +2231,7 @@ function cerrarPerfil() {
 }
 
 // ---------------------------------------------------------------------
-// ACTUALIZACIÓN UI CON LÍNEAS DE COLORES (CLASIFICACIÓN 8 EQUIPOS / PLAY-IN)
+// ACTUALIZACIÓN UI CON LÍNEAS DE COLORES
 // ---------------------------------------------------------------------
 function updateUI() {
     try {
@@ -2048,15 +2334,30 @@ function updateUI() {
             let eqMiConf = leagueTable.filter(t => t.conf === miConfNum).sort((a,b) => b.v - a.v);
             if(tableVd1) tableVd1.innerHTML = eqMiConf.map((r,i) => renderRow(r, i)).join('');
             
-            let eqOtraConf = leagueTable.filter(t => t.conf !== miConfNum).sort((a,b) => b.v - a.v);
             if(titleConf2 && tableVd2) {
-                if(eqOtraConf.length > 0) {
+                if (p.fase === 0) {
                     titleConf2.style.display = 'block'; 
-                    titleConf2.innerText = p.fase === 0 ? "OTRAS CONFERENCIAS" : (miConfNum === 1 ? 'CONFERENCIA ESTE' : 'CONFERENCIA OESTE');
-                    tableVd2.innerHTML = eqOtraConf.map((r,i) => renderRow(r, i)).join('');
-                } else { 
-                    titleConf2.style.display = 'none'; 
-                    tableVd2.innerHTML = ''; 
+                    titleConf2.innerText = "OTRAS CONFERENCIAS";
+                    let otherHtml = "";
+                    for (let c = 1; c <= 4; c++) {
+                        if (c === miConfNum) continue;
+                        let eqConf = leagueTable.filter(t => t.conf === c).sort((a,b) => b.v - a.v);
+                        if (eqConf.length > 0) {
+                            otherHtml += `<tr><td colspan="2" style="text-align:center; color:var(--accent); font-size:0.7em; padding-top:12px; padding-bottom:4px; border-bottom:1px solid #333;">GRUPO ${c}</td></tr>`;
+                            otherHtml += eqConf.map((r,i) => renderRow(r, i)).join('');
+                        }
+                    }
+                    tableVd2.innerHTML = otherHtml;
+                } else {
+                    let eqOtraConf = leagueTable.filter(t => t.conf !== miConfNum).sort((a,b) => b.v - a.v);
+                    if(eqOtraConf.length > 0) {
+                        titleConf2.style.display = 'block'; 
+                        titleConf2.innerText = miConfNum === 1 ? 'CONFERENCIA OESTE' : 'CONFERENCIA ESTE';
+                        tableVd2.innerHTML = eqOtraConf.map((r,i) => renderRow(r, i)).join('');
+                    } else { 
+                        titleConf2.style.display = 'none'; 
+                        tableVd2.innerHTML = ''; 
+                    }
                 }
             }
         }
@@ -2090,7 +2391,7 @@ function mostrarDraftACB() {
 
     equipos.forEach(eq => {
         let rol = p.ovr >= eq.ovr + 3 ? "Estrella" : (p.ovr >= eq.ovr - 4 ? "Titular" : "Suplente");
-        let sueldo = rol === "Estrella" ? 400 : rol === "Titular" ? 200 : 150;
+        let sueldo = rol === "Estrella" ? 450 : rol === "Titular" ? 250 : 200;
         let badge = rol === "Estrella" ? "🌟" : rol === "Titular" ? "✅" : "🔋";
         html += `
         <button onclick="ejecutarAscenso(1, '${eq.name}', '${rol}')" class="btn-main"
@@ -2146,7 +2447,7 @@ function mostrarDraftNBA() {
     }
 
     let ofertas = interesados.slice(0, 3);
-    let sueldo = rol === "Estrella" ? 400 : rol === "Titular" ? 200 : 150;
+    let sueldo = rol === "Estrella" ? 450 : rol === "Titular" ? 250 : 200;
     let pickLabel = pick === 0 ? "Sin pick — Agente Libre" : `Pick #${pick}`;
 
     let html = `
