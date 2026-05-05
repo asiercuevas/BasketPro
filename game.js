@@ -143,35 +143,35 @@ const DB = [
 const DB_ANIMACIONES = {
     tiro: [
         { id: "t_base", nombre: "Tiro Clásico", precio: 0, bono: 0, desc: "Mecánica estándar de tiro." },
-        { id: "t_rapido", nombre: "Tiro Rápido", precio: 2000, bono: 4, desc: "+4% de Acierto en Triples." },
-        { id: "t_pro", nombre: "Mecánica Perfecta", precio: 4000, bono: 6, desc: "+6% de Acierto en Triples." },
-        { id: "t_klay", nombre: "Tiro de K. Thompson", precio: 5500, bono: 7, famaBono: 0.2, desc: "+7% Acierto | +0.2 Fama por triple." },
-        { id: "t_kd", nombre: "Tiro de K. Durant", precio: 6500, bono: 8, famaBono: 0.2, desc: "+8% Acierto | +0.2 Fama por triple." },
-        { id: "t_curry", nombre: "Tiro de S. Curry", precio: 8000, bono: 9, famaBono: 0.2, desc: "+9% Acierto | +0.2 Fama por triple." }
+        { id: "t_rapido", nombre: "Tiro Rápido", precio: 2000, bono: 1, desc: "+1% de Acierto en Triples." },
+        { id: "t_pro", nombre: "Mecánica Perfecta", precio: 4000, bono: 2, desc: "+2% de Acierto en Triples." },
+        { id: "t_klay", nombre: "Tiro de K. Thompson", precio: 5500, bono: 3, famaBono: 0.2, desc: "+3% Acierto | +0.2 Fama por triple." },
+        { id: "t_kd", nombre: "Tiro de K. Durant", precio: 6500, bono: 4, famaBono: 0.2, desc: "+4% Acierto | +0.2 Fama por triple." },
+        { id: "t_curry", nombre: "Tiro de S. Curry", precio: 8000, bono: 5, famaBono: 0.2, desc: "+5% Acierto | +0.2 Fama por triple." }
     ],
     bandeja: [
         { id: "b_base", nombre: "Bandeja Básica", precio: 0, bono: 0, desc: "Finalización estándar." },
-        { id: "b_euro", nombre: "Euro-Step", precio: 1800, bono: 4, desc: "+4% de Acierto en Bandejas." },
-        { id: "b_jelly", nombre: "Jelly Layup", precio: 3800, bono: 6, desc: "+6% de Acierto en Bandejas." },
-        { id: "b_harden", nombre: "Euro de J. Harden", precio: 5000, bono: 7, famaBono: 0.2, desc: "+7% Acierto | +0.2 Fama por bandeja." },
-        { id: "b_ja", nombre: "Acrobacia de Ja Morant", precio: 6500, bono: 8, famaBono: 0.2, desc: "+8% Acierto | +0.2 Fama por bandeja." },
-        { id: "b_kyrie", nombre: "Finalización de Kyrie", precio: 8000, bono: 9, famaBono: 0.2, desc: "+9% Acierto | +0.2 Fama por bandeja." }
+        { id: "b_euro", nombre: "Euro-Step", precio: 1800, bono: 1, desc: "+1% de Acierto en Bandejas." },
+        { id: "b_jelly", nombre: "Jelly Layup", precio: 3800, bono: 2, desc: "+2% de Acierto en Bandejas." },
+        { id: "b_harden", nombre: "Euro de J. Harden", precio: 5000, bono: 3, famaBono: 0.2, desc: "+3% Acierto | +0.2 Fama por bandeja." },
+        { id: "b_ja", nombre: "Acrobacia de Ja Morant", precio: 6500, bono: 4, famaBono: 0.2, desc: "+4% Acierto | +0.2 Fama por bandeja." },
+        { id: "b_kyrie", nombre: "Finalización de Kyrie", precio: 8000, bono: 5, famaBono: 0.2, desc: "+5% Acierto | +0.2 Fama por bandeja." }
     ],
     mate: [
         { id: "m_base", nombre: "Mate a una mano", precio: 0, bono: 0, desc: "Mate seguro y conservador." },
-        { id: "m_toma", nombre: "Tomahawk", precio: 2500, bono: 4, desc: "+4% de Acierto en Mates." },
-        { id: "m_360", nombre: "Mate 360º", precio: 4500, bono: 6, desc: "+6% de Acierto en Mates." },
-        { id: "m_giannis", nombre: "Vuelo de Giannis", precio: 6000, bono: 8, famaBono: 0.2, desc: "+8% Acierto | +0.2 Fama por mate." },
-        { id: "m_lebron", nombre: "Tomahawk de LeBron", precio: 7000, bono: 9, famaBono: 0.2, desc: "+9% Acierto | +0.2 Fama por mate." },
-        { id: "m_vince", nombre: "Molinillo de V. Carter", precio: 8000, bono: 10, famaBono: 0.2, desc: "+10% Acierto | +0.2 Fama por mate." }
+        { id: "m_toma", nombre: "Tomahawk", precio: 2500, bono: 1, desc: "+1% de Acierto en Mates." },
+        { id: "m_360", nombre: "Mate 360º", precio: 4500, bono: 2, desc: "+2% de Acierto en Mates." },
+        { id: "m_giannis", nombre: "Vuelo de Giannis", precio: 6000, bono: 3, famaBono: 0.2, desc: "+3% Acierto | +0.2 Fama por mate." },
+        { id: "m_lebron", nombre: "Tomahawk de LeBron", precio: 7000, bono: 4, famaBono: 0.2, desc: "+4% Acierto | +0.2 Fama por mate." },
+        { id: "m_vince", nombre: "Molinillo de V. Carter", precio: 8000, bono: 5, famaBono: 0.2, desc: "+5% Acierto | +0.2 Fama por mate." }
     ],
     manejo: [
         { id: "a_base", nombre: "Bote de Control", precio: 0, bono: 0, desc: "Dribbling básico." },
-        { id: "a_cross", nombre: "Crossover Letal", precio: 2000, bono: 4, desc: "+4% de Acierto al Asistir." },
-        { id: "a_ankle", nombre: "Ankle Breaker", precio: 4000, bono: 6, desc: "+6% de Acierto al Asistir." },
-        { id: "a_ai", nombre: "Crossover de Iverson", precio: 5500, bono: 8, famaBono: 0.2, desc: "+8% Acierto | +0.2 Fama por asistencia." },
-        { id: "a_kyrie", nombre: "Handles de Kyrie", precio: 6800, bono: 9, famaBono: 0.2, desc: "+9% Acierto | +0.2 Fama por asistencia." },
-        { id: "a_magic", nombre: "Pases de Magic", precio: 8000, bono: 10, famaBono: 0.2, desc: "+10% Acierto | +0.2 Fama por asistencia." }
+        { id: "a_cross", nombre: "Crossover Letal", precio: 2000, bono: 1, desc: "+1% de Acierto al Asistir." },
+        { id: "a_ankle", nombre: "Ankle Breaker", precio: 4000, bono: 2, desc: "+2% de Acierto al Asistir." },
+        { id: "a_ai", nombre: "Crossover de Iverson", precio: 5500, bono: 3, famaBono: 0.2, desc: "+3% Acierto | +0.2 Fama por asistencia." },
+        { id: "a_kyrie", nombre: "Handles de Kyrie", precio: 6800, bono: 4, famaBono: 0.2, desc: "+4% Acierto | +0.2 Fama por asistencia." },
+        { id: "a_magic", nombre: "Pases de Magic", precio: 8000, bono: 5, famaBono: 0.2, desc: "+5% Acierto | +0.2 Fama por asistencia." }
     ]
 };
 
@@ -667,7 +667,20 @@ function mostrarPremios() {
     let mvpList = getTop5(allPlayers, 'mvpScore');
     let dpoyList = getTop5(allPlayers, 'dpoyScore');
     let sixthList = getTop5(allPlayers.filter(x => x.role === "Suplente"), 'mvpScore');
-    let rookieList = getTop5(allPlayers.filter(x => x.ovr < 80 && x.ovr >= 70), 'mvpScore');
+    
+    // --- CORRECCIÓN DE ROOKIES ---
+    // Ahora mira si es tu primer año en la liga (0 partidos en el historial de esa liga)
+    let soyRookie = (p.fase === 0) || 
+                    (p.fase === 1 && p.history.acb.matches === 0) || 
+                    (p.fase === 2 && p.history.nba.matches === 0);
+    
+    let rookieList = getTop5(allPlayers.filter(x => {
+        if (x.isMe) return soyRookie;
+        // Para la IA, seguimos usando un aproximado por OVR
+        if (p.fase === 0) return true; // En Junior todos son rookies
+        if (p.fase === 1) return x.ovr <= 78;
+        return x.ovr <= 82;
+    }), 'mvpScore');
 
     let html = `
     <div class="dialog-box log-entry" style="border-color:#0ff; padding: 15px; background: rgba(0,0,0,0.8);">
@@ -693,7 +706,11 @@ function mostrarPremios() {
     html += renderList("M.V.P. (Most Valuable Player)", mvpList, 'mvp');
     html += renderList("DEFENSOR DEL AÑO (DPOY)", dpoyList, 'def');
     html += renderList("6º HOMBRE DEL AÑO", sixthList, 'mvp');
-    html += renderList("ROOKIE DEL AÑO", rookieList, 'mvp');
+    
+    if (p.fase > 0 || rookieList.length > 0) {
+        html += renderList("ROOKIE DEL AÑO", rookieList, 'mvp');
+    }
+    
     html += `</div>`;
     
     let gl = document.getElementById('game-log');
@@ -1525,18 +1542,29 @@ function finish() {
     // LÓGICA DE PLAYOFFS EN CURSO
     // ==========================================
     if (p.isPlayoffs) {
+        let simularSerie = (tA, tB) => {
+            if(!tA) return tB; if(!tB) return tA;
+            return Math.random() < (tA.v >= tB.v ? 0.70 : 0.30) ? tA : tB;
+        };
+
         if (p.fase === 0) { 
             if (p.playoffStage === "CUARTOS") {
                 if (win) {
                     p.playoffStage = "SEMIFINAL";
                     let b = p.playoffBracket || {};
+                    
+                    b.win1v8 = (b.seedMiPos === 1 || b.seedMiPos === 8) ? p.teamData : simularSerie(b.s1, b.s8);
+                    b.win4v5 = (b.seedMiPos === 4 || b.seedMiPos === 5) ? p.teamData : simularSerie(b.s4, b.s5);
+                    b.win3v6 = (b.seedMiPos === 3 || b.seedMiPos === 6) ? p.teamData : simularSerie(b.s3, b.s6);
+                    b.win2v7 = (b.seedMiPos === 2 || b.seedMiPos === 7) ? p.teamData : simularSerie(b.s2, b.s7);
+
                     if (b.seedMiPos === 1 || b.seedMiPos === 8) p.playoffRival = b.win4v5;
                     else if (b.seedMiPos === 4 || b.seedMiPos === 5) p.playoffRival = b.win1v8;
                     else if (b.seedMiPos === 2 || b.seedMiPos === 7) p.playoffRival = b.win3v6;
                     else if (b.seedMiPos === 3 || b.seedMiPos === 6) p.playoffRival = b.win2v7;
 
                     if(!p.playoffRival || p.playoffRival.name === p.team) {
-                        p.playoffRival = leagueTable.find(t=>t.name !== p.team);
+                        p.playoffRival = leagueTable.find(t=>t.name !== p.team && !t.isPlayer);
                     }
                     escribirDialogo(`🏆 ¡Pasamos a Semis contra ${p.playoffRival.name}!`);
                     setTimeout(renderMenu, 4000);
@@ -1548,16 +1576,18 @@ function finish() {
                 if (win) { 
                     p.playoffStage = "GRAN FINAL"; 
                     let b = p.playoffBracket || {};
-                    let finalistaArriba = (b.win1v8 && b.win4v5) ? (b.win1v8.v > b.win4v5.v ? b.win1v8 : b.win4v5) : leagueTable[0];
-                    let finalistaAbajo = (b.win2v7 && b.win3v6) ? (b.win2v7.v > b.win3v6.v ? b.win2v7 : b.win3v6) : leagueTable[1];
+                    
+                    let finalistaArriba = (b.seedMiPos === 1 || b.seedMiPos === 8 || b.seedMiPos === 4 || b.seedMiPos === 5) ? p.teamData : simularSerie(b.win1v8, b.win4v5);
+                    let finalistaAbajo = (b.seedMiPos === 2 || b.seedMiPos === 7 || b.seedMiPos === 3 || b.seedMiPos === 6) ? p.teamData : simularSerie(b.win2v7, b.win3v6);
 
                     if (b.seedMiPos === 1 || b.seedMiPos === 8 || b.seedMiPos === 4 || b.seedMiPos === 5) {
                         p.playoffRival = finalistaAbajo;
                     } else {
                         p.playoffRival = finalistaArriba;
                     }
+
                     if(!p.playoffRival || p.playoffRival.name === p.team) {
-                        p.playoffRival = leagueTable.find(t=>t.name !== p.team);
+                        p.playoffRival = leagueTable.find(t=>t.name !== p.team && !t.isPlayer);
                     }
 
                     escribirDialogo(`🏆 ¡A LA GRAN FINAL contra ${p.playoffRival.name}!`); 
@@ -1580,20 +1610,20 @@ function finish() {
                 if (win) { 
                     p.playoffStage = "SEMIFINAL CONF"; 
                     let b = p.playoffBracket || {};
-                    let confTeams = leagueTable.filter(t => t.conf === p.teamData.conf).sort((a,b) => b.v - a.v);
                     
-                    if (b.seedMiPos) {
-                        if (b.seedMiPos === 1 || b.seedMiPos === 8) p.playoffRival = b.win4v5;
-                        else if (b.seedMiPos === 4 || b.seedMiPos === 5) p.playoffRival = b.win1v8;
-                        else if (b.seedMiPos === 2 || b.seedMiPos === 7) p.playoffRival = b.win3v6;
-                        else if (b.seedMiPos === 3 || b.seedMiPos === 6) p.playoffRival = b.win2v7;
-                    } else {
-                        let posibles = confTeams.slice(0, 8).filter(t => t.name !== p.team);
-                        p.playoffRival = posibles[Math.floor(Math.random() * posibles.length)];
-                    }
+                    b.win1v8 = (b.seedMiPos === 1 || b.seedMiPos === 8) ? p.teamData : simularSerie(b.s1, b.s8);
+                    b.win4v5 = (b.seedMiPos === 4 || b.seedMiPos === 5) ? p.teamData : simularSerie(b.s4, b.s5);
+                    b.win3v6 = (b.seedMiPos === 3 || b.seedMiPos === 6) ? p.teamData : simularSerie(b.s3, b.s6);
+                    b.win2v7 = (b.seedMiPos === 2 || b.seedMiPos === 7) ? p.teamData : simularSerie(b.s2, b.s7);
+
+                    if (b.seedMiPos === 1 || b.seedMiPos === 8) p.playoffRival = b.win4v5;
+                    else if (b.seedMiPos === 4 || b.seedMiPos === 5) p.playoffRival = b.win1v8;
+                    else if (b.seedMiPos === 2 || b.seedMiPos === 7) p.playoffRival = b.win3v6;
+                    else if (b.seedMiPos === 3 || b.seedMiPos === 6) p.playoffRival = b.win2v7;
 
                     if (!p.playoffRival || p.playoffRival.name === p.team) {
-                        p.playoffRival = confTeams.find(t => t.name !== p.team);
+                        let confTeams = leagueTable.filter(t => t.conf === p.teamData.conf && t.name !== p.team);
+                        p.playoffRival = confTeams[Math.floor(Math.random() * confTeams.length)];
                     }
 
                     escribirDialogo(`🏆 ¡Pasamos a Semifinales de Conferencia contra ${p.playoffRival.name}!`); 
@@ -1606,24 +1636,19 @@ function finish() {
                 if(win) { 
                     p.playoffStage = "FINAL CONF"; 
                     let b = p.playoffBracket || {};
-                    let confTeams = leagueTable.filter(t => t.conf === p.teamData.conf).sort((a,b) => b.v - a.v);
 
-                    if (b.seedMiPos) {
-                        let finalistaArriba = (b.win1v8.v > b.win4v5.v) ? b.win1v8 : b.win4v5;
-                        let finalistaAbajo = (b.win2v7.v > b.win3v6.v) ? b.win2v7 : b.win3v6;
+                    let finalistaArriba = (b.seedMiPos === 1 || b.seedMiPos === 8 || b.seedMiPos === 4 || b.seedMiPos === 5) ? p.teamData : simularSerie(b.win1v8, b.win4v5);
+                    let finalistaAbajo = (b.seedMiPos === 2 || b.seedMiPos === 7 || b.seedMiPos === 3 || b.seedMiPos === 6) ? p.teamData : simularSerie(b.win2v7, b.win3v6);
 
-                        if (b.seedMiPos === 1 || b.seedMiPos === 8 || b.seedMiPos === 4 || b.seedMiPos === 5) {
-                            p.playoffRival = finalistaAbajo;
-                        } else {
-                            p.playoffRival = finalistaArriba;
-                        }
+                    if (b.seedMiPos === 1 || b.seedMiPos === 8 || b.seedMiPos === 4 || b.seedMiPos === 5) {
+                        p.playoffRival = finalistaAbajo;
                     } else {
-                        let posibles = confTeams.slice(0, 4).filter(t => t.name !== p.team);
-                        p.playoffRival = posibles[Math.floor(Math.random() * posibles.length)] || confTeams[1];
+                        p.playoffRival = finalistaArriba;
                     }
 
                     if (!p.playoffRival || p.playoffRival.name === p.team) {
-                        p.playoffRival = confTeams.find(t => t.name !== p.team);
+                        let confTeams = leagueTable.filter(t => t.conf === p.teamData.conf && t.name !== p.team);
+                        p.playoffRival = confTeams[Math.floor(Math.random() * confTeams.length)];
                     }
 
                     escribirDialogo(`🏆 ¡Pasamos a la Final de Conferencia contra ${p.playoffRival.name}!`); 
@@ -1635,7 +1660,23 @@ function finish() {
             } else if (p.playoffStage === "FINAL CONF") {
                 if(win) { 
                     p.playoffStage = "GRAN FINAL"; 
-                    p.playoffRival = p.playoffBracket.otraConfChamp; 
+                    let b = p.playoffBracket || {};
+                    
+                    let ow18 = simularSerie(b.o1, b.o8);
+                    let ow45 = simularSerie(b.o4, b.o5);
+                    let ow36 = simularSerie(b.o3, b.o6);
+                    let ow27 = simularSerie(b.o2, b.o7);
+                    
+                    let oSemiArriba = simularSerie(ow18, ow45);
+                    let oSemiAbajo = simularSerie(ow27, ow36);
+                    
+                    p.playoffRival = simularSerie(oSemiArriba, oSemiAbajo); 
+
+                    if (!p.playoffRival || p.playoffRival.name === p.team) {
+                        let otraConfTeams = leagueTable.filter(t => t.conf !== p.teamData.conf);
+                        p.playoffRival = otraConfTeams[Math.floor(Math.random() * otraConfTeams.length)];
+                    }
+
                     escribirDialogo(`🏆 ¡SOMOS CAMPEONES DE CONFERENCIA! A LA GRAN FINAL CONTRA ${p.playoffRival.name}!`); 
                     setTimeout(renderMenu, 4000); 
                 } else { 
@@ -1682,18 +1723,13 @@ function finish() {
                     if(!p.playoffRival || p.playoffRival.name === p.team) {
                         p.playoffRival = clasificadosPlayoff.find(t => t.name !== p.team); 
                     }
-                    
-                    let w18 = (miPos === 1 || miPos === 8) ? p.teamData : clasificadosPlayoff[0];
-                    let w45 = (miPos === 4 || miPos === 5) ? p.teamData : clasificadosPlayoff[3];
-                    let w36 = (miPos === 3 || miPos === 6) ? p.teamData : clasificadosPlayoff[2];
-                    let w27 = (miPos === 2 || miPos === 7) ? p.teamData : clasificadosPlayoff[1];
 
                     p.playoffBracket = {
                         seedMiPos: miPos,
-                        win1v8: w18,
-                        win4v5: w45,
-                        win3v6: w36,
-                        win2v7: w27
+                        s1: clasificadosPlayoff[0], s8: clasificadosPlayoff[7],
+                        s4: clasificadosPlayoff[3], s5: clasificadosPlayoff[4],
+                        s3: clasificadosPlayoff[2], s6: clasificadosPlayoff[5],
+                        s2: clasificadosPlayoff[1], s7: clasificadosPlayoff[6]
                     };
                     
                     escribirDialogo(`🌟 ¡CLASIFICADOS A PLAYOFFS JUNIOR! Entramos como ${miPos}º del ranking general.`);
@@ -1744,21 +1780,16 @@ function finish() {
                     p.playoffRival = miConfTeams[rivalSeed - 1] || miConfTeams[0];
                     if (p.playoffRival.name === p.team) p.playoffRival = miConfTeams[1]; 
                     
-                    let w18 = (finalSeed === 1 || finalSeed === 8) ? p.teamData : (Math.random() > 0.2 ? miConfTeams[0] : miConfTeams[7]);
-                    let w45 = (finalSeed === 4 || finalSeed === 5) ? p.teamData : (Math.random() > 0.4 ? miConfTeams[3] : miConfTeams[4]);
-                    let w36 = (finalSeed === 3 || finalSeed === 6) ? p.teamData : (Math.random() > 0.3 ? miConfTeams[2] : miConfTeams[5]);
-                    let w27 = (finalSeed === 2 || finalSeed === 7) ? p.teamData : (Math.random() > 0.2 ? miConfTeams[1] : miConfTeams[6]);
-                    
-                    if(!w18) w18 = miConfTeams[0]; if(!w45) w45 = miConfTeams[3]; 
-                    if(!w36) w36 = miConfTeams[2]; if(!w27) w27 = miConfTeams[1];
-
                     p.playoffBracket = { 
                         seedMiPos: finalSeed,
-                        win1v8: w18,
-                        win4v5: w45,
-                        win3v6: w36,
-                        win2v7: w27,
-                        otraConfChamp: otraConfTeams[0].v > otraConfTeams[1].v ? otraConfTeams[0] : otraConfTeams[1] 
+                        s1: miConfTeams[0] || miConfTeams[0], s8: miConfTeams[7] || miConfTeams[0],
+                        s4: miConfTeams[3] || miConfTeams[0], s5: miConfTeams[4] || miConfTeams[0],
+                        s3: miConfTeams[2] || miConfTeams[0], s6: miConfTeams[5] || miConfTeams[0],
+                        s2: miConfTeams[1] || miConfTeams[0], s7: miConfTeams[6] || miConfTeams[0],
+                        o1: otraConfTeams[0] || otraConfTeams[0], o8: otraConfTeams[7] || otraConfTeams[0],
+                        o4: otraConfTeams[3] || otraConfTeams[0], o5: otraConfTeams[4] || otraConfTeams[0],
+                        o3: otraConfTeams[2] || otraConfTeams[0], o6: otraConfTeams[5] || otraConfTeams[0],
+                        o2: otraConfTeams[1] || otraConfTeams[0], o7: otraConfTeams[6] || otraConfTeams[0]
                     };
                     
                     escribirDialogo(`🌟 CLASIFICADOS A PLAYOFFS. Jugamos la PRIMERA RONDA contra ${p.playoffRival.name} (${rivalSeed}º).`);
