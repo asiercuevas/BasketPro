@@ -33,6 +33,8 @@ let p = {
     hasWatch: false, 
     proGear: false, 
     sponsor: "Ninguno",
+    sponsorTimeLeft: 0,
+    ofertaPendiente: "",
     tiro: 65, 
     fisico: 65, 
     bandeja: 65, 
@@ -60,15 +62,20 @@ let p = {
     playoffRival: null, 
     playoffOtherWinner: null, 
     playoffBracket: null,
+    debutadoACB: false, debutadoNBA: false,
     copaPlayedThisSeason: false, 
     isCopa: false, 
     copaStage: "", 
     copaRival: null,
     rivalTeam: "", 
+    rivalStyle: "",
+    felicidad: 50,
     aswPlayedThisSeason: false,
     aswDone: null,
     animCompradas: ["t_base", "b_base", "m_base", "a_base"],
-    animEquipadas: { tiro: "t_base", bandeja: "b_base", mate: "m_base", manejo: "a_base" }
+    animEquipadas: { tiro: "t_base", bandeja: "b_base", mate: "m_base", manejo: "a_base" },
+    isMercado: false, 
+    fichajesIA: [] 
 };
 
 let leagueTable = []; 
@@ -178,40 +185,197 @@ const DB_ANIMACIONES = {
 function getAnimBonus(tipoAccion) {
     let cat = tipoAccion === 't' ? 'tiro' : (tipoAccion === 'b' ? 'bandeja' : (tipoAccion === 'm' ? 'mate' : (tipoAccion === 'a' ? 'manejo' : null)));
     if (!cat) return 0;
-    
     let animId = p.animEquipadas[cat];
     let animObj = DB_ANIMACIONES[cat].find(a => a.id === animId);
-    return animObj ? animObj.bono : 0;
+    return Math.min(6, animObj ? animObj.bono : 0);
+}
+
+// =====================================================================
+// SISTEMA DE MERCADO Y RECALCULO DE OVR
+// =====================================================================
+function recalcularMediasEquipos() {
+    leagueTable.forEach(t => {
+        if (t.roster && t.roster.length > 0) {
+            let sortedRoster = [...t.roster].sort((a, b) => b.o - a.o);
+            let top5 = sortedRoster.slice(0, 5);
+            let sumOvr = top5.reduce((acc, jug) => acc + jug.o, 0);
+            t.ovr = Math.round(sumOvr / top5.length);
+            
+            t.star = top5[0].n;
+            t.starOvr = top5[0].o;
+        }
+    });
+}
+
+function simularMercadoIA() {
+    p.fichajesIA = [];
+    if (p.fase === 0) return; 
+    
+    let todosJugadores = [];
+    leagueTable.forEach(t => {
+        if (t.name !== p.team) {
+            t.roster.forEach(j => {
+                if (j.n !== p.name && j.n !== p.rivalName && j.o >= 75) {
+                    todosJugadores.push({ jug: j, equipoViejo: t });
+                }
+            });
+        }
+    });
+    
+    todosJugadores.sort(() => 0.5 - Math.random());
+    let jugadoresMover = todosJugadores.slice(0, 3 + Math.floor(Math.random() * 2));
+    
+    jugadoresMover.forEach(mov => {
+        let equiposPosibles = leagueTable.filter(t => t.name !== mov.equipoViejo.name && t.name !== p.team);
+        if (equiposPosibles.length > 0) {
+            let equipoNuevo = equiposPosibles[Math.floor(Math.random() * equiposPosibles.length)];
+            
+            mov.equipoViejo.roster = mov.equipoViejo.roster.filter(j => j.n !== mov.jug.n);
+            equipoNuevo.roster.push(mov.jug);
+            
+            p.fichajesIA.push({ nombre: mov.jug.n, ovr: mov.jug.o, de: mov.equipoViejo.name, a: equipoNuevo.name });
+        }
+    });
+    
+    recalcularMediasEquipos();
+}
+
+function renderMercado() {
+    let act = document.getElementById('actions');
+    if(!act) return;
+    
+    let html = `
+        <div style="font-size:0.7em; color:var(--accent); text-align:center; margin-bottom:10px; font-weight:bold;">--- 🔄 MERCADO DE VERANO ---</div>
+        <div style="font-size:0.6em; color:#fff; margin-bottom:10px; text-align:center;">El mercado está abierto. Analiza los movimientos de la IA e intenta reforzar tu propio equipo antes de que empiece la temporada.</div>
+        
+        <div style="background:rgba(0,0,0,0.5); border:1px solid #444; border-radius:5px; padding:10px; margin-bottom:15px;">
+            <div style="color:gold; font-size:0.65em; font-weight:bold; margin-bottom:5px;">🔥 MOVIMIENTOS DESTACADOS EN LA LIGA</div>`;
+            
+    if (p.fichajesIA.length > 0) {
+        p.fichajesIA.forEach(f => {
+            html += `<div style="font-size:0.55em; color:#ccc; margin-bottom:3px;">➡️ <b style="color:#fff;">${f.nombre}</b> (OVR ${f.ovr}) abandona <i>${f.de}</i> y firma por <b style="color:var(--accent);">${f.a}</b>.</div>`;
+        });
+    } else {
+        html += `<div style="font-size:0.55em; color:#888;">El mercado ha estado muy tranquilo. Sin grandes movimientos.</div>`;
+    }
+    
+    html += `</div>
+        
+        <div style="background:rgba(0,0,0,0.5); border:1px solid var(--accent); border-radius:5px; padding:10px; margin-bottom:10px;">
+            <div style="color:var(--accent); font-size:0.65em; font-weight:bold; margin-bottom:5px;">📋 SUGERIR UN FICHAJE PARA ${p.team.toUpperCase()}</div>
+            <p style="font-size:0.55em; color:#aaa; margin-bottom:8px;">Pídele a tu GM que intente traer a una estrella. El éxito depende de tu Fama y del nivel del jugador.</p>
+            
+            <select id="sel-fichaje" style="width:100%; padding:5px; background:#222; color:#fff; border:1px solid #555; margin-bottom:8px;" onchange="calcularProbabilidadFichaje()">
+                <option value="">-- Selecciona un jugador --</option>`;
+                
+    let opcionesFichaje = [];
+    leagueTable.forEach(t => {
+        if (t.name !== p.team) {
+            t.roster.forEach(j => {
+                if (j.n !== p.name && j.n !== p.rivalName && !j.n.includes("Jugador")) {
+                    opcionesFichaje.push({ j: j, tName: t.name });
+                }
+            });
+        }
+    });
+    
+    opcionesFichaje.sort((a,b) => b.j.o - a.j.o);
+    
+    opcionesFichaje.forEach(opt => {
+        html += `<option value="${opt.j.n}|${opt.tName}|${opt.j.o}">${opt.j.n} (${opt.tName}) - OVR ${opt.j.o}</option>`;
+    });
+            
+    html += `</select>
+            <div id="prob-fichaje-txt" style="font-size:0.6em; color:gold; text-align:center; margin-bottom:8px;">Selecciona a alguien para ver la probabilidad.</div>
+            <button onclick="intentarFichaje()" class="btn-main" style="border-color:var(--success); color:var(--success); width:100%;">🤝 INTENTAR FICHAJE</button>
+        </div>
+        
+        <button onclick="cerrarMercado()" class="btn-main" style="border-color:#555; color:#ccc; width:100%;">⏭️ CERRAR MERCADO Y EMPEZAR TEMPORADA</button>
+    `;
+    
+    act.innerHTML = html;
+}
+
+function calcularProbabilidadFichaje() {
+    let sel = document.getElementById('sel-fichaje');
+    let txt = document.getElementById('prob-fichaje-txt');
+    if (!sel || !sel.value) { txt.innerHTML = "Selecciona a alguien para ver la probabilidad."; return; }
+    
+    let parts = sel.value.split('|');
+    let targetOvr = parseInt(parts[2]);
+    let miEquipo = leagueTable.find(t => t.name === p.team);
+    
+    let probBase = Math.floor((p.fame * 0.6) + ((miEquipo.ovr - targetOvr) * 2.5) + 30);
+    probBase = Math.max(1, Math.min(95, probBase));
+    
+    let color = probBase > 60 ? 'var(--success)' : (probBase > 30 ? 'gold' : 'var(--danger)');
+    txt.innerHTML = `Probabilidad de convencerle: <b style="color:${color}; font-size:1.2em;">${probBase}%</b>`;
+    sel.dataset.prob = probBase;
+}
+
+function intentarFichaje() {
+    let sel = document.getElementById('sel-fichaje');
+    if (!sel || !sel.value) return alert("Selecciona a un jugador primero.");
+    
+    let prob = parseInt(sel.dataset.prob);
+    let parts = sel.value.split('|');
+    let targetName = parts[0];
+    let oldTeamName = parts[1];
+    
+    let roll = Math.random() * 100;
+    
+    if (roll <= prob) {
+        let oldTeam = leagueTable.find(t => t.name === oldTeamName);
+        let miEquipo = leagueTable.find(t => t.name === p.team);
+        
+        let jugadorObj = oldTeam.roster.find(j => j.n === targetName);
+        oldTeam.roster = oldTeam.roster.filter(j => j.n !== targetName);
+        
+        miEquipo.roster.push(jugadorObj);
+        
+        escribirDialogo(`🚨 ¡BOMBAZO EN EL MERCADO! Tu directiva ha cerrado el fichaje de <b style="color:var(--success);">${targetName}</b>. Se une a tu equipo para esta temporada.`);
+        
+    } else {
+        escribirDialogo(`❌ El fichaje de <b style="color:var(--danger);">${targetName}</b> se ha frustrado. Prefiere quedarse en su equipo o pedir más dinero del que tenemos.`);
+    }
+    
+    recalcularMediasEquipos();
+    cerrarMercado();
+}
+
+function cerrarMercado() {
+    p.isMercado = false;
+    updateUI();
+    renderMenu();
+    escribirDialogo(`SISTEMA:<br>El mercado ha cerrado. Las plantillas están confirmadas. ¡A por la Temporada ${p.season}!`);
+    guardarPartida();
 }
 
 function ubicarRival() {
     if(!p.rivalName) return;
     
     DB[p.fase].teams.forEach(t => {
-        if (t.star === p.rivalName) {
-            t.star = "Estrella";
-        }
+        if (t.star === p.rivalName) t.star = "Estrella";
         if (t.roster) {
             t.roster.forEach(r => { 
-                if (r.n === p.rivalName) { 
-                    r.n = "Veterano"; 
-                    r.o -= 5; 
-                } 
+                if (r.n === p.rivalName) { r.n = "Veterano"; r.o -= 5; } 
             });
         }
     });
 
-    let rivalOvr = Math.min(DB[p.fase].maxOvr, p.ovr + 1);
+    let rivalOvr = Math.min(DB[p.fase].maxOvr, p.ovr + Math.floor(Math.random() * 3));
+    
+    if (!p.rivalStyle) {
+        const estilos = ['anotador','defensor','pasador','reboteador','completo'];
+        p.rivalStyle = estilos[Math.floor(Math.random() * estilos.length)];
+    }
     
     if (p.fase === 0) {
         p.rivalTeam = p.team;
     } else {
         if (!p.rivalTeam || p.rivalTeam === p.team || !DB[p.fase].teams.find(t => t.name === p.rivalTeam)) {
             let posibles = DB[p.fase].teams.filter(t => t.name !== p.team);
-            
-            if (rivalOvr >= (DB[p.fase].maxOvr - 5) || p.fame >= 60) {
-                posibles = posibles.sort((a, b) => b.ovr - a.ovr).slice(0, 5);
-            }
+            posibles = posibles.sort((a, b) => b.ovr - a.ovr).slice(0, 6);
             let randomTeam = posibles[Math.floor(Math.random() * posibles.length)];
             p.rivalTeam = randomTeam.name;
         }
@@ -221,11 +385,9 @@ function ubicarRival() {
     if (tDB) {
         if (!tDB.roster) {
             tDB.roster = [
-                {n: p.rivalName, p: "B", o: rivalOvr},
-                {n: "Jugador 2", p: "E", o: tDB.ovr}, 
-                {n: "Jugador 3", p: "A", o: tDB.ovr-1},
-                {n: "Jugador 4", p: "AP", o: tDB.ovr-1}, 
-                {n: "Jugador 5", p: "P", o: tDB.ovr}, 
+                {n: p.rivalName, p: "B", o: rivalOvr, pts:0, reb:0, ast:0, rob:0, tap:0},
+                {n: "Jugador 2", p: "E", o: tDB.ovr}, {n: "Jugador 3", p: "A", o: tDB.ovr-1},
+                {n: "Jugador 4", p: "AP", o: tDB.ovr-1}, {n: "Jugador 5", p: "P", o: tDB.ovr},
                 {n: "Sexto", p: "6M", o: tDB.ovr-2}
             ];
         } else {
@@ -233,17 +395,34 @@ function ubicarRival() {
             if(tDB.roster[slot]) {
                 tDB.roster[slot].n = p.rivalName; 
                 tDB.roster[slot].o = rivalOvr;
+                if(tDB.roster[slot].pts === undefined) { tDB.roster[slot].pts = 0; tDB.roster[slot].reb = 0; tDB.roster[slot].ast = 0; tDB.roster[slot].rob = 0; tDB.roster[slot].tap = 0; }
             }
         }
         tDB.star = p.rivalName; 
-        
         if(leagueTable.length > 0) {
             let leagueTeam = leagueTable.find(t => t.name === p.rivalTeam);
-            if(leagueTeam) {
-                leagueTeam.star = p.rivalName;
-            }
+            if(leagueTeam) leagueTeam.star = p.rivalName;
         }
     }
+}
+
+function distributeRivalStats(jug) {
+    let m = Math.max(1, leagueTable.find(t=>t.name===p.rivalTeam)?.v + leagueTable.find(t=>t.name===p.rivalTeam)?.d || 1);
+    let base = jug.o;
+    const mults = {
+        anotador:    {pts:1.5, ast:0.6, reb:0.7, rob:0.7, tap:0.6},
+        defensor:    {pts:0.7, ast:0.7, reb:1.2, rob:1.6, tap:1.5},
+        pasador:     {pts:0.8, ast:1.8, reb:0.7, rob:1.2, tap:0.6},
+        reboteador:  {pts:0.8, ast:0.6, reb:1.8, rob:0.8, tap:1.2},
+        completo:    {pts:1.1, ast:1.1, reb:1.1, rob:1.1, tap:1.1},
+    };
+    let w = mults[p.rivalStyle] || mults.completo;
+    let pts = Math.floor((8 + base/8 + Math.random()*8) * w.pts);
+    let ast = Math.floor((1 + base/35 + Math.random()*4) * w.ast);
+    let reb = Math.floor((2 + base/25 + Math.random()*5) * w.reb);
+    let rob = Math.floor((0.5 + base/60 + Math.random()*2) * w.rob);
+    let tap = Math.floor((0.3 + base/65 + Math.random()*1.5) * w.tap);
+    jug.pts += pts; jug.ast += ast; jug.reb += reb; jug.rob += rob; jug.tap += tap;
 }
 
 function getMyTeamOvr() { 
@@ -297,6 +476,8 @@ function cargarPartida() {
             
             if (!p.animCompradas) p.animCompradas = ["t_base", "b_base", "m_base", "a_base"];
             if (!p.animEquipadas) p.animEquipadas = { tiro: "t_base", bandeja: "b_base", mate: "m_base", manejo: "a_base" };
+            if (p.sponsorTimeLeft === undefined) p.sponsorTimeLeft = 0;
+            if (p.ofertaPendiente === undefined) p.ofertaPendiente = "";
 
             leagueTable = data.liga;
             p.teamData = leagueTable.find(t => t.name === p.team);
@@ -314,8 +495,13 @@ function cargarPartida() {
             ubicarRival(); 
             evalRole(); 
             updateUI(); 
-            renderMenu();
-            escribirDialogo(`SISTEMA:<br>Partida cargada. Temporada ${p.season}/17.`);
+            
+            if(p.isMercado) {
+                renderMercado();
+            } else {
+                renderMenu();
+                escribirDialogo(`SISTEMA:<br>Partida cargada. Temporada ${p.season}/17.`);
+            }
         }
     } catch(e) {
         console.error("Error al cargar:", e);
@@ -452,6 +638,8 @@ function prepararLiga() {
         p.teamData = leagueTable[0];
         p.team = p.teamData.name;
     }
+    
+    recalcularMediasEquipos();
 }
 
 // =====================================================================
@@ -504,6 +692,8 @@ function trainAttr(attr) {
 }
 
 function renderMenu() {
+    if (p.isMercado) { renderMercado(); return; }
+
     if (!p.teamData) { 
         p.teamData = leagueTable.find(t => t.name === p.team) || leagueTable[0]; 
     }
@@ -571,35 +761,46 @@ function renderMenu() {
 }
 
 function verCuadroPlayoffs() {
-    let title = p.fase === 1 ? "CUADRO PLAYOFFS ACB" : "CUADRO PLAYOFFS NBA";
+    let title = p.fase === 0 ? "CUADRO PLAYOFFS JUNIOR" : (p.fase === 1 ? "CUADRO PLAYOFFS ACB" : "CUADRO PLAYOFFS NBA");
     
     let html = `
     <div class="dialog-box log-entry" style="border-color:gold; padding:10px; background:#111;">
         <h3 style="color:gold; text-align:center; margin-bottom:10px; font-size:0.85em;">🏆 ${title} 🏆</h3>
         <div style="font-size:0.65em; text-align:center; color:#fff; margin-bottom:15px;">Fase Actual: <b style="color:var(--accent);">${p.playoffStage}</b></div>
         
-        <div style="display:flex; justify-content:space-between; font-size:0.5em; text-align:center;">
-            
+        <div style="display:flex; justify-content:space-between; font-size:0.5em; text-align:center;">`;
+
+    if (p.fase === 0 || p.fase === 1) {
+        html += `
+            <div style="flex:1; border-right:1px solid #333; padding-right:5px;">
+                <b style="color:#0ff; display:block; margin-bottom:5px; font-size:1.2em;">TOP 8</b>
+                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='CUARTOS' ? 'border-color:var(--accent); color:var(--accent);' : ''}">CUARTOS DE FINAL</div>
+                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='SEMIFINAL' ? 'border-color:var(--accent); color:var(--accent);' : ''}">SEMIFINAL</div>
+            </div>
+            <div style="flex:1; display:flex; align-items:center; justify-content:center; flex-direction:column; padding:0 8px;">
+                <div style="border:2px solid gold; padding:10px; background:#222; font-weight:bold; width:100%; border-radius:4px; font-size:1.1em; ${p.playoffStage==='GRAN FINAL' ? 'box-shadow:0 0 10px gold;' : ''}">GRAN FINAL</div>
+            </div>`;
+    } else {
+        html += `
             <div style="flex:1.2; border-right:1px solid #333; padding-right:5px;">
-                <b style="color:#0ff; display:block; margin-bottom:5px; font-size:1.2em;">${p.fase===1 ? 'LLAVES A' : 'OESTE'}</b>
-                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='PRIMERA RONDA' || p.playoffStage==='CUARTOS' ? 'border-color:var(--accent); color:var(--accent);' : ''}">1º vs 8º / 4º vs 5º</div>
-                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='SEMIFINAL CONF' || p.playoffStage==='SEMIFINAL' ? 'border-color:var(--accent); color:var(--accent);' : ''}">SEMIFINAL CONF</div>
+                <b style="color:#0ff; display:block; margin-bottom:5px; font-size:1.2em;">OESTE</b>
+                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='PRIMERA RONDA' ? 'border-color:var(--accent); color:var(--accent);' : ''}">1º vs 8º / 4º vs 5º</div>
+                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='SEMIFINAL CONF' ? 'border-color:var(--accent); color:var(--accent);' : ''}">SEMIFINAL CONF</div>
                 <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='FINAL CONF' ? 'border-color:var(--accent); color:var(--accent);' : ''}">FINAL CONF</div>
             </div>
-            
             <div style="flex:1; display:flex; align-items:center; justify-content:center; flex-direction:column; padding:0 8px;">
                 <div style="border:2px solid gold; padding:10px; background:#222; font-weight:bold; width:100%; border-radius:4px; font-size:1.1em; ${p.playoffStage==='GRAN FINAL' ? 'box-shadow:0 0 10px gold;' : ''}">FINAL</div>
             </div>
-            
             <div style="flex:1.2; border-left:1px solid #333; padding-left:5px;">
-                <b style="color:#0ff; display:block; margin-bottom:5px; font-size:1.2em;">${p.fase===1 ? 'LLAVES B' : 'ESTE'}</b>
-                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='PRIMERA RONDA' || p.playoffStage==='CUARTOS' ? 'border-color:var(--accent); color:var(--accent);' : ''}">2º vs 7º / 3º vs 6º</div>
-                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='SEMIFINAL CONF' || p.playoffStage==='SEMIFINAL' ? 'border-color:var(--accent); color:var(--accent);' : ''}">SEMIFINAL CONF</div>
+                <b style="color:#0ff; display:block; margin-bottom:5px; font-size:1.2em;">ESTE</b>
+                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='PRIMERA RONDA' ? 'border-color:var(--accent); color:var(--accent);' : ''}">2º vs 7º / 3º vs 6º</div>
+                <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='SEMIFINAL CONF' ? 'border-color:var(--accent); color:var(--accent);' : ''}">SEMIFINAL CONF</div>
                 <div style="border:1px solid #444; margin:8px 0; background:#222; padding:4px; border-radius:3px; ${p.playoffStage==='FINAL CONF' ? 'border-color:var(--accent); color:var(--accent);' : ''}">FINAL CONF</div>
-            </div>
+            </div>`;
+    }
 
+    html += `
         </div>
-        
         <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-top:15px; border:1px solid #333;">
             <p style="text-align:center; color:#ccc; font-size:0.65em; margin:0;">
                 <span style="color:var(--accent);">TU EQUIPO:</span> <b style="color:#fff;">${p.team}</b><br><br>
@@ -668,16 +869,13 @@ function mostrarPremios() {
     let dpoyList = getTop5(allPlayers, 'dpoyScore');
     let sixthList = getTop5(allPlayers.filter(x => x.role === "Suplente"), 'mvpScore');
     
-    // --- CORRECCIÓN DE ROOKIES ---
-    // Ahora mira si es tu primer año en la liga (0 partidos en el historial de esa liga)
     let soyRookie = (p.fase === 0) || 
                     (p.fase === 1 && p.history.acb.matches === 0) || 
                     (p.fase === 2 && p.history.nba.matches === 0);
     
     let rookieList = getTop5(allPlayers.filter(x => {
         if (x.isMe) return soyRookie;
-        // Para la IA, seguimos usando un aproximado por OVR
-        if (p.fase === 0) return true; // En Junior todos son rookies
+        if (p.fase === 0) return true;
         if (p.fase === 1) return x.ovr <= 78;
         return x.ovr <= 82;
     }), 'mvpScore');
@@ -710,6 +908,34 @@ function mostrarPremios() {
     if (p.fase > 0 || rookieList.length > 0) {
         html += renderList("ROOKIE DEL AÑO", rookieList, 'mvp');
     }
+
+    let ptsLeaders = getTop5(allPlayers, 'ppp');
+    let rebLeaders = getTop5(allPlayers, 'rpp');
+    let astLeaders = getTop5(allPlayers, 'app');
+    let robLeaders = getTop5(allPlayers, 'ropp');
+    let tapLeaders = getTop5(allPlayers, 'tapp');
+
+    const renderLeader = (titulo, list, statKey, unit) => {
+        let section = `<div style="margin-bottom:14px; font-size:0.75em;">
+            <b style="color:#ff0; font-size:1.1em; border-bottom:1px solid #444; display:block; margin-bottom:5px;">📊 ${titulo}</b>`;
+        list.forEach((x, i) => {
+            let color = x.isMe ? "var(--success)" : (i === 0 ? "gold" : "#eee");
+            section += `<div style="display:flex; justify-content:space-between; color:${color}; margin-bottom:2px;">
+                <span>${i+1}. ${x.isMe ? '⭐ ' : ''}${x.name} <small style="color:#888;">(${x.team})</small></span>
+                <span style="font-family:monospace;">${x[statKey].toFixed(1)} ${unit}</span>
+            </div>`;
+        });
+        return section + `</div>`;
+    };
+
+    html += `<div style="margin-top:10px; border-top:1px solid #333; padding-top:10px;">
+        <b style="color:#ff0; font-size:0.8em; display:block; margin-bottom:8px; text-align:center;">📊 LÍDERES ESTADÍSTICOS</b>`;
+    html += renderLeader("ANOTACIÓN", ptsLeaders, 'ppp', 'p/p');
+    html += renderLeader("REBOTES", rebLeaders, 'rpp', 'r/p');
+    html += renderLeader("ASISTENCIAS", astLeaders, 'app', 'a/p');
+    html += renderLeader("ROBOS", robLeaders, 'ropp', 'ro/p');
+    html += renderLeader("TAPONES", tapLeaders, 'tapp', 'tapp');
+    html += `</div>`;
     
     html += `</div>`;
     
@@ -721,95 +947,145 @@ function mostrarPremios() {
 function renderVidaPrivada() {
     let act = document.getElementById('actions');
     if(!act) return;
+    let fel = p.felicidad || 50;
+    let felColor = fel >= 70 ? 'var(--success)' : (fel <= 30 ? 'var(--danger)' : 'gold');
+    let felMsg = fel >= 70 ? '😄 Feliz (+2 Qui/partido)' : (fel <= 30 ? '😢 Triste (-3 Qui/partido)' : '😐 Normal');
     act.innerHTML = `
-        <div style="font-size: 0.7em; color: gold; margin-bottom: 10px; text-align:center; font-weight:bold;">--- VIDA PRIVADA ---</div>
-        <button onclick="ejecutarGasto('kebab')" class="btn-main" style="text-transform:none; font-size: 0.7em;">🥙 KEBAB (15€) | -1 Qui</button>
-        <button onclick="ejecutarGasto('fiesta')" class="btn-main" style="text-transform:none; font-size: 0.7em;">🍺 FIESTA (500€) | +3 Fam, -5 Qui</button>
-        <button onclick="ejecutarGasto('crio')" class="btn-main" style="text-transform:none; font-size: 0.7em;">❄️ CRIOTERAPIA (1.5K€) | +5 Qui</button>
-        <button onclick="ejecutarGasto('vaca')" class="btn-main" style="text-transform:none; font-size: 0.7em;">🏖️ VACACIONES (2K€) | Reset Qui</button>
-        <button onclick="ejecutarGasto('gear')" class="btn-main" ${p.proGear?'disabled':''} style="text-transform:none; font-size: 0.7em; ${p.proGear ? 'border-color:#333; color:#555;' : ''}">👟 EQUIPO PRO (3K€) | +10 Fam</button>
-        <button onclick="ejecutarGasto('entrenador')" class="btn-main" style="text-transform:none; font-size: 0.7em;">🧠 COACH MENTAL (5K€) | +15 Qui</button>
-        <button onclick="ejecutarGasto('reloj')" class="btn-main" ${p.hasWatch?'disabled':''} style="text-transform:none; font-size: 0.7em; ${p.hasWatch ? 'border-color:#333; color:#555;' : ''}">⌚ RELOJ ORO (12K€) | +4 Fam</button>
-        <button onclick="ejecutarGasto('coche')" class="btn-main" ${p.hasCar?'disabled':''} style="text-transform:none; font-size: 0.7em; ${p.hasCar ? 'border-color:#333; color:#555;' : ''}">🏎️ DEPORTIVO (50K€) | +5 Fam</button>
-        <button onclick="ejecutarGasto('mansion')" class="btn-main" ${p.hasHouse?'disabled':''} style="text-transform:none; font-size: 0.7em; border-color:gold; ${p.hasHouse ? 'border-color:#333; color:#555;' : 'color:gold;'}">🏠 MANSIÓN (150K€) | +10 Fam</button>
-        <button onclick="renderMenu()" class="btn-main" style="border-color: #555; color: #ccc; margin-top:10px;">⬅ VOLVER</button>
+        <div style="font-size:0.7em;color:gold;margin-bottom:6px;text-align:center;font-weight:bold;">--- VIDA PRIVADA ---</div>
+        <div style="font-size:0.6em;color:${felColor};text-align:center;margin-bottom:8px;padding:4px;border:1px solid ${felColor};border-radius:4px;">😊 FELICIDAD: ${fel}/100 — ${felMsg}</div>
+        
+        <div style="color:var(--accent);font-size:0.55em;margin-bottom:3px;letter-spacing:1px;">🍔 OCIO</div>
+        <button onclick="ejecutarGasto('kebab')" class="btn-main" style="text-transform:none;font-size:0.7em;">🥙 KEBAB (15€) | -1 Fís, -2 Fel</button>
+        <button onclick="ejecutarGasto('fiesta')" class="btn-main" style="text-transform:none;font-size:0.7em;">🍺 FIESTA (500€) | +3 Fam, -5 Qui, +8 Fel</button>
+        <button onclick="ejecutarGasto('crio')" class="btn-main" style="text-transform:none;font-size:0.7em;">❄️ CRIOTERAPIA (1.5K€) | +5 Fís, +5 Fel</button>
+        <button onclick="ejecutarGasto('vaca')" class="btn-main" style="text-transform:none;font-size:0.7em;">🏖️ VACACIONES (2K€) | Reset Fís, +20 Fel</button>
+        
+        <div style="color:var(--accent);font-size:0.55em;margin:6px 0 3px;letter-spacing:1px;">👨‍👩‍👧 FAMILIA & AMIGOS</div>
+        <button onclick="ejecutarGasto('llamada')" class="btn-main" style="text-transform:none;font-size:0.7em;border-color:#ff9;color:#ff9;">📞 Llamar a casa (gratis) | +5 Fel</button>
+        <button onclick="ejecutarGasto('amigos')" class="btn-main" style="text-transform:none;font-size:0.7em;border-color:#ff9;color:#ff9;">👬 Salir con amigos (200€) | +10 Fel, +8 Qui</button>
+        <button onclick="ejecutarGasto('familia')" class="btn-main" style="text-transform:none;font-size:0.7em;border-color:#ff9;color:#ff9;">👨‍👩‍👧 Cena familiar (300€) | +15 Fel, +5 Qui</button>
+        <button onclick="ejecutarGasto('psicologo')" class="btn-main" style="text-transform:none;font-size:0.7em;border-color:#ff9;color:#ff9;">🧠 Psicólogo (800€) | +20 Fel, +10 Qui</button>
+        <button onclick="ejecutarGasto('viaje')" class="btn-main" style="text-transform:none;font-size:0.7em;border-color:#ff9;color:#ff9;">✈️ Viaje familia (3K€) | +25 Fel, +10 Qui</button>
+        <button onclick="ejecutarGasto('donacion')" class="btn-main" style="text-transform:none;font-size:0.7em;border-color:#ff9;color:#ff9;">❤️ Donación (1K€) | +10 Fam, +15 Fel</button>
+        
+        <div style="color:var(--accent);font-size:0.55em;margin:6px 0 3px;letter-spacing:1px;">🏋️ RENDIMIENTO</div>
+        <button onclick="ejecutarGasto('gear')" class="btn-main" ${p.proGear?'disabled':''} style="text-transform:none;font-size:0.7em;${p.proGear?'border-color:#333;color:#555;':''}">👟 EQUIPO PRO (3K€) | +2 Tiro, +2 Ban</button>
+        <button onclick="ejecutarGasto('entrenador')" class="btn-main" style="text-transform:none;font-size:0.7em;">🧠 COACH MENTAL (5K€) | +15 Qui, +5 Fel</button>
+        
+        <div style="color:var(--accent);font-size:0.55em;margin:6px 0 3px;letter-spacing:1px;">💎 LUJO</div>
+        <button onclick="ejecutarGasto('reloj')" class="btn-main" ${p.hasWatch?'disabled':''} style="text-transform:none;font-size:0.7em;${p.hasWatch?'border-color:#333;color:#555;':''}">⌚ RELOJ ORO (12K€) | +4 Fam</button>
+        <button onclick="ejecutarGasto('coche')" class="btn-main" ${p.hasCar?'disabled':''} style="text-transform:none;font-size:0.7em;${p.hasCar?'border-color:#333;color:#555;':''}">🏎️ DEPORTIVO (50K€) | +5 Fam</button>
+        <button onclick="ejecutarGasto('mansion')" class="btn-main" ${p.hasHouse?'disabled':''} style="text-transform:none;font-size:0.7em;border-color:gold;${p.hasHouse?'border-color:#333;color:#555;':'color:gold;'}">🏠 MANSIÓN (150K€) | +10 Fam</button>
+        
+        <button onclick="renderAnimaciones()" class="btn-main" style="border-color:#0ff;color:#0ff;margin-top:5px;width:100%;">🎬 ANIMACIONES</button>
+        <button onclick="renderMenu()" class="btn-main" style="border-color:#555;color:#ccc;margin-top:5px;">⬅ VOLVER</button>
     `;
 }
 
 function ejecutarGasto(tipo) {
+    let f = p.felicidad || 50;
     if (tipo === 'kebab' && p.money >= 15) { 
-        p.money -= 15; 
-        p.chem -= 1; 
-        escribirDialogo("🥙 KEBAB: Te saltas la dieta. -1 Química en el vestuario."); 
-    } 
-    else if (tipo === 'fiesta' && p.money >= 500) { 
-        p.money -= 500; 
-        p.fame += 3; 
-        p.chem -= 5; 
-        escribirDialogo("🍺 FIESTA: Noche VIP. +3 Fama, -5 Química."); 
-    } 
-    else if (tipo === 'crio' && p.money >= 1500) { 
-        p.money -= 1500; 
-        p.chem += 5; 
-        escribirDialogo("❄️ CRIOTERAPIA: Gran actitud profesional. +5 Química con el equipo."); 
-    } 
-    else if (tipo === 'vaca' && p.money >= 2000) { 
-        p.money -= 2000; 
-        p.chem = 100; 
-        escribirDialogo("🏖️ VACACIONES: Desconexión total. Química recuperada al 100%."); 
-    } 
-    else if (tipo === 'gear' && p.money >= 3000) { 
-        p.money -= 3000; 
-        p.proGear = true; 
-        p.fame += 10; 
-        escribirDialogo("👟 EQUIPO PRO: Todos hablan de tus zapatillas. +10 Fama."); 
-    } 
-    else if (tipo === 'entrenador' && p.money >= 5000) { 
-        p.money -= 5000; 
-        p.chem += 15; 
-        escribirDialogo("🧠 COACH MENTAL: Sesión de cohesión. +15 Química."); 
-    } 
-    else if (tipo === 'reloj' && p.money >= 12000) { 
-        p.money -= 12000; 
-        p.hasWatch = true; 
-        p.fame += 4; 
-        escribirDialogo("⌚ RELOJ DE ORO: Puro estatus. +4 Fama al instante."); 
-    } 
-    else if (tipo === 'coche' && p.money >= 50000) { 
-        p.money -= 50000; 
-        p.hasCar = true; 
-        p.fame += 5; 
-        escribirDialogo("🏎️ DEPORTIVO: Llegas al pabellón rugiendo. +5 Fama."); 
-    } 
-    else if (tipo === 'mansion' && p.money >= 150000) { 
-        p.money -= 150000; 
-        p.hasHouse = true; 
-        p.fame += 10; 
-        escribirDialogo("🏠 MANSIÓN: Una casa de locura. +10 Fama."); 
-    } 
-    else { 
-        alert("No tienes suficiente dinero."); 
+        p.money -= 15; p.fisico = Math.max(0, p.fisico-1); p.felicidad = Math.max(0, f-2);
+        escribirDialogo("🥙 KEBAB: Te saltas la dieta. -1 Físico, -2 Felicidad."); 
+    } else if (tipo === 'fiesta' && p.money >= 500) { 
+        p.money -= 500; p.fame += 3; p.chem -= 5; p.felicidad = Math.min(100, f+8);
+        escribirDialogo("🍺 FIESTA: Noche VIP. +3 Fama, -5 Química, +8 Felicidad."); 
+    } else if (tipo === 'crio' && p.money >= 1500) { 
+        p.money -= 1500; p.fisico = Math.min(100, p.fisico+5); p.felicidad = Math.min(100, f+5);
+        escribirDialogo("❄️ CRIOTERAPIA: Recuperación extrema. +5 Físico, +5 Felicidad."); 
+    } else if (tipo === 'vaca' && p.money >= 2000) { 
+        p.money -= 2000; p.fisico = 100; p.felicidad = Math.min(100, f+20);
+        escribirDialogo("🏖️ VACACIONES: Desconexión total. Físico al 100%, +20 Felicidad."); 
+    } else if (tipo === 'llamada') { 
+        p.felicidad = Math.min(100, f+5);
+        escribirDialogo("📞 LLAMADA A CASA: Escuchar la voz de tu familia lo cambia todo. +5 Felicidad."); 
+    } else if (tipo === 'amigos' && p.money >= 200) { 
+        p.money -= 200; p.chem = Math.min(100, p.chem+8); p.felicidad = Math.min(100, f+10);
+        escribirDialogo("👬 AMIGOS: Una noche con los de siempre. +8 Química, +10 Felicidad."); 
+    } else if (tipo === 'familia' && p.money >= 300) { 
+        p.money -= 300; p.chem = Math.min(100, p.chem+5); p.felicidad = Math.min(100, f+15);
+        escribirDialogo("👨‍👩‍👧 CENA FAMILIAR: Nada como la familia. +5 Química, +15 Felicidad."); 
+    } else if (tipo === 'psicologo' && p.money >= 800) { 
+        p.money -= 800; p.chem = Math.min(100, p.chem+10); p.felicidad = Math.min(100, f+20);
+        escribirDialogo("🧠 PSICÓLOGO: Gestión emocional de alto rendimiento. +10 Química, +20 Felicidad."); 
+    } else if (tipo === 'viaje' && p.money >= 3000) { 
+        p.money -= 3000; p.chem = Math.min(100, p.chem+10); p.felicidad = Math.min(100, f+25);
+        escribirDialogo("✈️ VIAJE FAMILIAR: Una semana mágica. +10 Química, +25 Felicidad."); 
+    } else if (tipo === 'donacion' && p.money >= 1000) { 
+        p.money -= 1000; p.fame = Math.min(FAME_MAX, p.fame+10); p.felicidad = Math.min(100, f+15);
+        escribirDialogo("❤️ DONACIÓN: Dar sin esperar nada. +10 Fama, +15 Felicidad."); 
+    } else if (tipo === 'gear' && p.money >= 3000) { 
+        p.money -= 3000; p.proGear = true; p.tiro += 2; p.bandeja += 2;
+        escribirDialogo("👟 EQUIPO PRO: Botas de élite. +2 Tiro, +2 Bandeja."); 
+    } else if (tipo === 'entrenador' && p.money >= 5000) { 
+        p.money -= 5000; p.chem = Math.min(100, p.chem+15); p.felicidad = Math.min(100, f+5);
+        escribirDialogo("🧠 COACH MENTAL: +15 Química, +5 Felicidad."); 
+    } else if (tipo === 'reloj' && p.money >= 12000) { 
+        p.money -= 12000; p.hasWatch = true; p.fame = Math.min(FAME_MAX, p.fame+4);
+        escribirDialogo("⌚ RELOJ DE ORO: Puro estatus. +4 Fama."); 
+    } else if (tipo === 'coche' && p.money >= 50000) { 
+        p.money -= 50000; p.hasCar = true; p.fame = Math.min(FAME_MAX, p.fame+5);
+        escribirDialogo("🏎️ DEPORTIVO: Llegas rugiendo. +5 Fama."); 
+    } else if (tipo === 'mansion' && p.money >= 150000) { 
+        p.money -= 150000; p.hasHouse = true; p.fame = Math.min(FAME_MAX, p.fame+10);
+        escribirDialogo("🏠 MANSIÓN: +10 Fama."); 
+    } else { 
+        alert("No tienes suficiente dinero."); return;
     }
     
+    p.felicidad = Math.max(0, Math.min(100, p.felicidad||50));
     if (p.chem > 100) p.chem = 100;
     if (p.chem < 0) p.chem = 0;
     if (p.fame > FAME_MAX) p.fame = FAME_MAX;
-
     updateUI(); 
     renderVidaPrivada();
 }
 
 function checkPatrocinios() {
-    if (p.fame >= 20 && p.sponsor === "Ninguno") {
-        p.sponsor = "Deportes Paco";
-        escribirDialogo("🤝 <b>PATROCINIO:</b> 'Deportes Paco' ha visto tu potencial. Te pagarán 50€ extra por victoria.");
-    } else if (p.fame >= 45 && (p.sponsor === "Ninguno" || p.sponsor === "Deportes Paco")) {
-        p.sponsor = "Kicks Brand";
-        escribirDialogo("👟 <b>PATROCINIO:</b> ¡La marca 'Kicks Brand' te ficha! Te pagarán 150€ extra por victoria.");
-    } else if (p.fame >= 75 && p.sponsor === "Kicks Brand") {
-        p.sponsor = "Global Sports";
-        escribirDialogo("🌍 <b>PATROCINIO MILLONARIO:</b> ¡Eres una estrella global! 'Global Sports' te firma un contrato de 400€ extra por victoria.");
+    if (p.sponsor !== "Ninguno" && p.sponsorTimeLeft > 0) return; 
+    
+    if (p.fame >= 75 && p.ofertaPendiente !== "Global Sports" && p.sponsor !== "Global Sports") {
+        p.ofertaPendiente = "Global Sports";
+        mostrarOfertaPatrocinio("Global Sports", 400, 3);
+    } else if (p.fame >= 45 && p.fame < 75 && p.ofertaPendiente !== "Kicks Brand" && p.sponsor !== "Kicks Brand") {
+        p.ofertaPendiente = "Kicks Brand";
+        mostrarOfertaPatrocinio("Kicks Brand", 150, 2);
+    } else if (p.fame >= 20 && p.fame < 45 && p.ofertaPendiente !== "Deportes Paco" && p.sponsor !== "Deportes Paco") {
+        p.ofertaPendiente = "Deportes Paco";
+        mostrarOfertaPatrocinio("Deportes Paco", 50, 1);
     }
+}
+
+function mostrarOfertaPatrocinio(marca, pago, duracion) {
+    let html = `
+    <div class="dialog-box log-entry" style="border-color: #0ff; background: rgba(0,255,255,0.05);">
+        <h3 style="color:#0ff; text-align:center; font-size:0.8em; margin-bottom: 5px;">🤝 OFERTA DE PATROCINIO</h3>
+        <p style="font-size:0.65em; text-align:center; color:#ccc;">La marca <b>${marca}</b> te ofrece un contrato de ${pago}€ extra por victoria durante <b>${duracion} temporadas</b>.</p>
+        <div style="display:flex; gap:5px; margin-top:8px;">
+            <button onclick="aceptarPatrocinio('${marca}', ${duracion}, this)" class="btn-main" style="flex:1; border-color:var(--success); color:var(--success);">✅ ACEPTAR</button>
+            <button onclick="rechazarPatrocinio(this)" class="btn-main" style="flex:1; border-color:var(--danger); color:var(--danger);">❌ RECHAZAR</button>
+        </div>
+    </div>`;
+    let gl = document.getElementById('game-log');
+    if(gl) gl.insertAdjacentHTML('beforeend', html);
+    scrollToBottom();
+}
+
+function aceptarPatrocinio(marca, duracion, btn) {
+    p.sponsor = marca;
+    p.sponsorTimeLeft = duracion;
+    p.ofertaPendiente = "";
+    escribirDialogo(`🤝 Has firmado un contrato con ${marca} por ${duracion} temporadas.`);
+    if(btn && btn.parentElement) btn.parentElement.innerHTML = `<span style="color:var(--success); font-size:0.7em;">Oferta aceptada.</span>`;
+    updateUI();
+    guardarPartida();
+}
+
+function rechazarPatrocinio(btn) {
+    p.ofertaPendiente = "";
+    escribirDialogo(`❌ Has rechazado la oferta de patrocinio.`);
+    if(btn && btn.parentElement) btn.parentElement.innerHTML = `<span style="color:var(--danger); font-size:0.7em;">Oferta rechazada.</span>`;
+    guardarPartida();
 }
 
 function renderAnimaciones() {
@@ -922,7 +1198,14 @@ function play() {
     match.ritmo = ["LENTO", "NORMAL", "RÁPIDO"][Math.floor(Math.random()*3)];
 
     let sb = document.getElementById('live-scoreboard');
-    if(sb) sb.style.display = 'flex';
+    if(sb) {
+        sb.style.display = 'flex';
+        sb.style.position = 'sticky';
+        sb.style.top = '0';
+        sb.style.zIndex = '50';
+        sb.style.borderBottom = '2px solid var(--accent)';
+        sb.style.marginBottom = '8px';
+    }
     
     let myt = document.getElementById('sb-my-team');
     if(myt) myt.innerText = p.team.substring(0, 10).toUpperCase();
@@ -1010,7 +1293,6 @@ function getPlayTime(j, totalPlays) {
     return `${q}Q | ${m<10?'0'+m:m}:${s<10?'0'+s:s}`;
 }
 
-// UTILIDAD PARA SACAR COMENTARIOS DINÁMICOS
 function getMsgRes(tipo, result) {
     if (typeof COMENTARIOS_RESULTADOS !== 'undefined' && COMENTARIOS_RESULTADOS[tipo] && COMENTARIOS_RESULTADOS[tipo][result]) {
         let arr = COMENTARIOS_RESULTADOS[tipo][result];
@@ -1044,7 +1326,6 @@ function next() {
     
     let tipo = match.pool[match.j];
     
-    // COMPROBACIÓN DE MOMENTO DECISIVO
     let diferenciaPuntos = Math.abs(match.myScore - match.rivScore);
     let esUltimaJugada = (match.j === match.numPlays - 1);
     let esClutch = esUltimaJugada && diferenciaPuntos <= 3 && tipo === "ATAQUE";
@@ -1183,7 +1464,8 @@ function res(tipo, id) {
     if(ok) { 
         match.ok++; 
         match.myScore += (['m','b','t','a'].includes(tipo)) ? pts : 0; 
-        match.pts += (['m','b','t'].includes(tipo)) ? pts : 0; 
+        match.pts += (['m','b','t'].includes(tipo)) ? pts : 0;
+        match.pts = Math.floor(match.pts); 
         
         let cat = tipo === 't' ? 'tiro' : (tipo === 'b' ? 'bandeja' : (tipo === 'm' ? 'mate' : (tipo === 'a' ? 'manejo' : null)));
         if (cat) {
@@ -1210,7 +1492,6 @@ function res(tipo, id) {
     setTimeout(next, 1500);
 }
 
-// --- LÓGICA DE MÁRGENES BASADOS ESTRICTAMENTE EN OVR PARA LA IA ---
 function distributeStats(roster, totalPts) {
     if(!roster || roster.length === 0) return;
     
@@ -1220,21 +1501,17 @@ function distributeStats(roster, totalPts) {
 
         let pts, ast, reb, rob, tap;
         
-        // Puntos
         if (jug.o >= 80 && jug.o <= 88) {
             let t = (jug.o - 80) / 8;
-            pts = Math.max(15, Math.min(28, (18 + t * 7) + (Math.random()*10 - 5)));
+            pts = Math.round(Math.max(15, Math.min(28, (18 + t * 7) + (Math.random()*10 - 5))));
         } else if (jug.o >= 89) {
             let t = Math.min(1, (jug.o - 89) / 10);
-            pts = Math.max(20, Math.min(45, (25 + t * 13) + (Math.random()*15 - 5)));
+            pts = Math.round(Math.max(20, Math.min(45, (25 + t * 13) + (Math.random()*15 - 5))));
         } else {
-            // AJUSTE DE ROOKIES: Puntos reducidos drásticamente para medias menores de 80
-            pts = 3 + (jug.o / 12) + Math.random() * 6; 
+            pts = Math.round(3 + (jug.o / 12) + Math.random() * 6); 
         }
 
-        // Rebotes, Asistencias, Robos y Tapones con márgenes por OVR
         if (jug.o < 75) {
-            // AJUSTE DE ROOKIES: Rebotes y asistencias reducidos ligeramente
             reb = 1 + Math.random() * 2; 
             ast = 0 + Math.random() * 2; 
             rob = Math.random() * 1; 
@@ -1264,27 +1541,24 @@ function distributeStats(roster, totalPts) {
     });
 }
 
-// --- LÓGICA DE MÁRGENES BASADOS ESTRICTAMENTE EN OVR PARA EL JUGADOR ---
 function finish() {
     let sb = document.getElementById('live-scoreboard');
     if(sb) sb.style.display = 'none';
     
     let roleMult = p.role === "Estrella" ? 1.2 : (p.role === "Titular" ? 1.0 : 0.6); 
     
-    let gamePts, minAst, maxAst, minReb, maxReb, minRob, maxRob, minTap, maxTap;
+    let gamePts, minAst, maxAst, minReb, maxRob, minTap, maxTap;
 
-    // Puntos (Igual que antes, basado en OVR)
     if (p.ovr >= 80 && p.ovr <= 88) {
         let t = (p.ovr - 80) / 8; 
-        gamePts = Math.max(15, Math.min(28, (18 + t * 7) + (Math.random() * 10 - 5)));
+        gamePts = Math.round(Math.max(15, Math.min(28, (18 + t * 7) + (Math.random() * 10 - 5))));
     } else if (p.ovr >= 89) {
         let t = (p.ovr - 89) / 10; 
-        gamePts = Math.max(20, Math.min(45, (25 + t * 13) + (Math.random() * 15 - 5)));
+        gamePts = Math.round(Math.max(20, Math.min(45, (25 + t * 13) + (Math.random() * 15 - 5))));
     } else {
-        gamePts = match.pts + Math.floor((Math.random() * 4 + (p.ovr / 10)) * roleMult);
+        gamePts = Math.round(match.pts + Math.floor((Math.random() * 4 + (p.ovr / 10)) * roleMult));
     }
 
-    // AJUSTE PARA EL JUGADOR: Asistencias y rebotes suben UN POCO (+1 en los márgenes de todas las medias)
     if (p.ovr < 75) {
         minAst = 2; maxAst = 5; 
         minReb = 3; maxReb = 6; 
@@ -1307,7 +1581,6 @@ function finish() {
         minTap = 1; maxTap = 4;
     }
 
-    // Sumamos lo que hayas hecho manualmente en el partido + el simulado con márgenes y rol
     let gameAst = match.ast + Math.floor((minAst + Math.random() * (maxAst - minAst)) * roleMult);
     let gameReb = match.reb + Math.floor((minReb + Math.random() * (maxReb - minReb)) * roleMult);
     let gameRob = match.rob + Math.floor((minRob + Math.random() * (maxRob - minRob)) * roleMult);
@@ -1349,12 +1622,17 @@ function finish() {
         distributeStats(match.rival.roster, match.rivScore);
         match.rival.starPts = match.rival.roster[0].pts;
         
+        // Simulación realista del resto de equipos según OVR
+        let avgOvr = p.fase === 0 ? 70 : (p.fase === 1 ? 80 : 90); 
         leagueTable.forEach(r => { 
             if(!r.isPlayer && r.name !== match.rival.name) { 
                 let simScore = Math.floor(70 + Math.random()*25); 
                 r.pts += simScore; 
                 
-                if(Math.random() > 0.5) r.v++; 
+                let winChance = 0.50 + ((r.ovr - avgOvr) * 0.05);
+                winChance = Math.max(0.10, Math.min(0.90, winChance));
+                
+                if(Math.random() < winChance) r.v++; 
                 else r.d++; 
                 
                 distributeStats(r.roster, simScore);
@@ -1375,9 +1653,7 @@ function finish() {
         p.teamData.pts += gamePts;
     }
     
-    // NERF DE FAMA POR VICTORIA
     let fameChange = 0;
-    
     if (gamePts >= 20) { 
         fameChange += 0.5; 
         p.stats.gamesSinceBig = 0; 
@@ -1385,7 +1661,7 @@ function finish() {
         p.stats.gamesSinceBig++; 
     }
     
-    if (gamePts >= 15) {
+    if (gamePts >= 20) {
         p.stats.streak15++; 
     } else {
         p.stats.streak15 = 0;
@@ -1394,13 +1670,14 @@ function finish() {
     if (p.stats.streak15 >= 3) { 
         fameChange += 1; 
         p.stats.streak15 = 0; 
-        escribirDialogo("🔥 ESTÁS ON FIRE: Bono +1 Fama por racha (+15pts en 3 partidos)."); 
+        escribirDialogo("🔥 ESTÁS ON FIRE: Bono +1 Fama por racha (+20pts en 3 partidos)."); 
     }
 
     if (win) { 
         p.chem += 2; 
         p.stats.lossStreak = 0; 
-        if (match.rival.ovr > getMyTeamOvr()) fameChange += 0.3; 
+        fameChange += 0.25;
+        if (match.rival.ovr > getMyTeamOvr()) fameChange += 0.5; 
     } else { 
         fameChange -= 1.5; 
         p.chem -= 1; 
@@ -1410,8 +1687,10 @@ function finish() {
     if (p.stats.gamesSinceBig >= 6) { 
         fameChange -= 2; 
         p.stats.gamesSinceBig = 0; 
-        escribirDialogo("📉 El público te está olvidando (6 partidos sin 20 pts). -2 Fama."); 
+        escribirDialogo("📉 El público te está olvidando (6 partidos sin anotar 20 pts). -2 Fama."); 
     }
+
+    let fameBefore = Math.floor(p.fame);
 
     let proMultiplier = p.fase === 0 ? 1.0 : (p.fase === 1 ? 0.8 : 0.6);
     if (p.fame >= 55 && fameChange > 0) { 
@@ -1424,6 +1703,10 @@ function finish() {
     if (p.fame < 0) p.fame = 0;
     if (p.chem > 100) p.chem = 100;
     if (p.chem < 0) p.chem = 0;
+
+    let fameAfter = Math.floor(p.fame);
+    let fameDiff = fameAfter - fameBefore;
+    let fameDiffStr = fameDiff > 0 ? `+${fameDiff}` : `${fameDiff}`;
 
     checkPatrocinios();
 
@@ -1445,14 +1728,21 @@ function finish() {
     p.money += (win ? sueldo : Math.floor(sueldo / 2)) + extraSponsor - carCost; 
 
     let endMsg = win ? `¡Victoria de ${p.team}!` : `Derrota para ${p.team}...`;
+
+    if (win) p.felicidad = Math.min(100, (p.felicidad||50) + 2);
+    else     p.felicidad = Math.max(0,   (p.felicidad||50) - 3);
+    if (gamePts >= 20) p.felicidad = Math.min(100, p.felicidad + 1);
+    if (p.felicidad >= 70) p.chem = Math.min(100, p.chem + 2);
+    if (p.felicidad <= 30) p.chem = Math.max(0,   p.chem - 3);
+
     let endHtml = `
     <div class="dialog-box log-entry" style="text-align:center; border-color:${win ? 'var(--success)' : 'var(--danger)'}">
         <p style="font-size:1.2em; margin-bottom:10px;">${match.myScore} - ${match.rivScore}</p>
         <p style="font-size:0.7em; color:${win ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${endMsg}</p>
         <p style="font-size:0.55em; color:#aaa; margin-top:10px;">
-            Tus stats reales hoy: ${gamePts} PTS | ${gameAst} AST | ${gameReb} REB | ${gameRob} ROB | ${gameTap} TAP
+            Tus stats hoy: ${Math.floor(gamePts)} PTS | ${Math.floor(gameAst)} AST | ${Math.floor(gameReb)} REB | ${Math.floor(gameRob)} ROB | ${Math.floor(gameTap)} TAP
         </p>
-        <p style="font-size:0.55em; color:gold; margin-top:5px;">Fama: ${p.fame.toFixed(1)} | Química: ${p.chem}%</p>
+        <p style="font-size:0.55em; color:gold; margin-top:5px;">Fama: ${fameAfter} (${fameDiffStr}) | Química: ${p.chem}% | 😊 Felicidad: ${p.felicidad}</p>
     </div>`;
     
     let gl = document.getElementById('game-log');
@@ -1538,16 +1828,13 @@ function finish() {
         return;
     }
 
-    // ==========================================
-    // LÓGICA DE PLAYOFFS EN CURSO
-    // ==========================================
     if (p.isPlayoffs) {
         let simularSerie = (tA, tB) => {
             if(!tA) return tB; if(!tB) return tA;
             return Math.random() < (tA.v >= tB.v ? 0.70 : 0.30) ? tA : tB;
         };
 
-        if (p.fase === 0) { 
+        if (p.fase === 0 || p.fase === 1) { 
             if (p.playoffStage === "CUARTOS") {
                 if (win) {
                     p.playoffStage = "SEMIFINAL";
@@ -1558,14 +1845,16 @@ function finish() {
                     b.win3v6 = (b.seedMiPos === 3 || b.seedMiPos === 6) ? p.teamData : simularSerie(b.s3, b.s6);
                     b.win2v7 = (b.seedMiPos === 2 || b.seedMiPos === 7) ? p.teamData : simularSerie(b.s2, b.s7);
 
-                    if (b.seedMiPos === 1 || b.seedMiPos === 8) p.playoffRival = b.win4v5;
-                    else if (b.seedMiPos === 4 || b.seedMiPos === 5) p.playoffRival = b.win1v8;
-                    else if (b.seedMiPos === 2 || b.seedMiPos === 7) p.playoffRival = b.win3v6;
-                    else if (b.seedMiPos === 3 || b.seedMiPos === 6) p.playoffRival = b.win2v7;
+                    let sp = b.seedMiPos;
+                    if (sp === 1 || sp === 8) p.playoffRival = b.win4v5;
+                    else if (sp === 4 || sp === 5) p.playoffRival = b.win1v8;
+                    else if (sp === 2 || sp === 7) p.playoffRival = b.win3v6;
+                    else if (sp === 3 || sp === 6) p.playoffRival = b.win2v7;
 
-                    if(!p.playoffRival || p.playoffRival.name === p.team) {
-                        p.playoffRival = leagueTable.find(t=>t.name !== p.team && !t.isPlayer);
+                    if (!p.playoffRival || p.playoffRival.name === p.team) {
+                        p.playoffRival = leagueTable.filter(t => t.name !== p.team && t.v > 0).sort((a,b)=>b.v-a.v)[0];
                     }
+                    p.playoffBracket = b;
                     escribirDialogo(`🏆 ¡Pasamos a Semis contra ${p.playoffRival.name}!`);
                     setTimeout(renderMenu, 4000);
                 } else {
@@ -1598,14 +1887,19 @@ function finish() {
                 }
             } else if (p.playoffStage === "GRAN FINAL") {
                 if(win) { 
-                    p.ligasJunior++; 
-                    escribirDialogo(`🥇 ¡CAMPEONES JUNIOR! (Total: ${p.ligasJunior})`); 
+                    if(p.fase === 0) {
+                        p.ligasJunior++; 
+                        escribirDialogo(`🥇 ¡CAMPEONES JUNIOR! (Total: ${p.ligasJunior})`); 
+                    } else {
+                        p.ligasACB++; 
+                        escribirDialogo(`🥇 ¡CAMPEONES ABSOLUTOS DE ACB! Haces historia. (Ligas ACB: ${p.ligasACB})`); 
+                    }
                 } else {
                     escribirDialogo(`🥈 Perdemos la final...`);
                 }
                 setTimeout(draft, 4000);
             }
-        } else if (p.fase === 1 || p.fase === 2) { 
+        } else if (p.fase === 2) { 
             if (p.playoffStage === "PRIMERA RONDA") {
                 if (win) { 
                     p.playoffStage = "SEMIFINAL CONF"; 
@@ -1685,14 +1979,9 @@ function finish() {
                 }
             } else if (p.playoffStage === "GRAN FINAL") {
                 if(win) {
-                    if(p.fase === 1) { 
-                        p.ligasACB++; 
-                        escribirDialogo(`🥇 ¡CAMPEONES ABSOLUTOS DE ACB! Haces historia. (Ligas ACB: ${p.ligasACB})`); 
-                    } else { 
-                        p.rings++; 
-                        p.fame = Math.min(FAME_MAX, p.fame + 10); 
-                        escribirDialogo(`💍 ¡HAS GANADO UN ANILLO DE LA NBA! (Total: ${p.rings})`); 
-                    }
+                    p.rings++; 
+                    p.fame = Math.min(FAME_MAX, p.fame + 10); 
+                    escribirDialogo(`💍 ¡HAS GANADO UN ANILLO DE LA NBA! (Total: ${p.rings})`); 
                 } else {
                     escribirDialogo(`🥈 Subcampeones... nos quedamos a las puertas de la gloria.`);
                 }
@@ -1700,18 +1989,19 @@ function finish() {
             }
         }
     } else {
-        // ==========================================
-        // FIN TEMPORADA REGULAR Y CLASIFICACIÓN A PLAYOFFS
-        // ==========================================
         if(p.sMatches >= partidosTemporada) {
-            if (p.fase === 0) {
+            if (p.fase === 0 || p.fase === 1) {
                 let clasificadosPlayoff = [];
-                for(let i=1; i<=4; i++) {
-                    let confT = leagueTable.filter(t => t.conf === i).sort((a,b) => b.v - a.v);
-                    if(confT[0]) clasificadosPlayoff.push(confT[0]);
-                    if(confT[1]) clasificadosPlayoff.push(confT[1]);
+                if (p.fase === 0) {
+                    for(let i=1; i<=4; i++) {
+                        let confT = leagueTable.filter(t => t.conf === i).sort((a,b) => b.v - a.v);
+                        if(confT[0]) clasificadosPlayoff.push(confT[0]);
+                        if(confT[1]) clasificadosPlayoff.push(confT[1]);
+                    }
+                    clasificadosPlayoff.sort((a,b) => b.v - a.v);
+                } else {
+                    clasificadosPlayoff = [...leagueTable].sort((a,b) => b.v - a.v).slice(0, 8);
                 }
-                clasificadosPlayoff.sort((a,b) => b.v - a.v);
                 
                 let miPos = clasificadosPlayoff.findIndex(t => t.name === p.team) + 1;
                 
@@ -1719,26 +2009,27 @@ function finish() {
                     p.isPlayoffs = true; 
                     p.playoffStage = "CUARTOS";
                     
-                    p.playoffRival = clasificadosPlayoff[8 - miPos];
-                    if(!p.playoffRival || p.playoffRival.name === p.team) {
-                        p.playoffRival = clasificadosPlayoff.find(t => t.name !== p.team); 
-                    }
+                    // CORRECCIÓN: Asegurar semillas exactas
+                    let s = {};
+                    for(let i=1; i<=8; i++) s[`s${i}`] = clasificadosPlayoff[i-1];
+                    
+                    p.playoffRival = s[`s${9 - miPos}`];
 
                     p.playoffBracket = {
                         seedMiPos: miPos,
-                        s1: clasificadosPlayoff[0], s8: clasificadosPlayoff[7],
-                        s4: clasificadosPlayoff[3], s5: clasificadosPlayoff[4],
-                        s3: clasificadosPlayoff[2], s6: clasificadosPlayoff[5],
-                        s2: clasificadosPlayoff[1], s7: clasificadosPlayoff[6]
+                        s1: s.s1, s8: s.s8,
+                        s4: s.s4, s5: s.s5,
+                        s3: s.s3, s6: s.s6,
+                        s2: s.s2, s7: s.s7
                     };
                     
-                    escribirDialogo(`🌟 ¡CLASIFICADOS A PLAYOFFS JUNIOR! Entramos como ${miPos}º del ranking general.`);
+                    escribirDialogo(`🌟 ¡CLASIFICADOS A PLAYOFFS! Entramos como ${miPos}º del ranking.`);
                     setTimeout(renderMenu, 5000);
                 } else { 
-                    escribirDialogo(`No logramos clasificar a Playoffs Junior. Temporada terminada.`); 
+                    escribirDialogo(`No logramos clasificar a Playoffs. Temporada terminada.`); 
                     setTimeout(draft, 4000); 
                 }
-            } else if (p.fase === 1 || p.fase === 2) { 
+            } else if (p.fase === 2) { 
                 let miConfTeams = leagueTable.filter(t => t.conf === p.teamData.conf).sort((a,b) => b.v - a.v);
                 let miPos = miConfTeams.findIndex(t => t.name === p.team) + 1;
                 let otraConfTeams = leagueTable.filter(t => t.conf !== p.teamData.conf).sort((a,b) => b.v - a.v);
@@ -1746,20 +2037,16 @@ function finish() {
                 let qualifies = false;
                 let finalSeed = miPos;
 
-                if (p.fase === 1) {
-                    if (miPos <= 8) qualifies = true;
-                } else if (p.fase === 2) {
-                    if (miPos <= 6) {
+                if (miPos <= 6) {
+                    qualifies = true;
+                } else if (miPos >= 7 && miPos <= 10) {
+                    let winPlayin = (Math.random() * 100) < (p.ovr - 55); 
+                    if (winPlayin) {
                         qualifies = true;
-                    } else if (miPos >= 7 && miPos <= 10) {
-                        let winPlayin = (Math.random() * 100) < (p.ovr - 55); 
-                        if (winPlayin) {
-                            qualifies = true;
-                            finalSeed = (miPos === 7 || miPos === 8) ? 7 : 8; 
-                            escribirDialogo(`🔥 ¡LOCURA DE PLAY-IN! Superas la muerte súbita y te metes en Playoffs como ${finalSeed}º.`);
-                        } else {
-                            escribirDialogo(`❌ Derrota dolorosa en el Play-In. Te quedas a las puertas de Playoffs.`);
-                        }
+                        finalSeed = (miPos === 7 || miPos === 8) ? 7 : 8; 
+                        escribirDialogo(`🔥 ¡LOCURA DE PLAY-IN! Superas la muerte súbita y te metes en Playoffs como ${finalSeed}º.`);
+                    } else {
+                        escribirDialogo(`❌ Derrota dolorosa en el Play-In. Te quedas a las puertas de Playoffs.`);
                     }
                 }
                 
@@ -1767,29 +2054,41 @@ function finish() {
                     p.isPlayoffs = true;
                     p.playoffStage = "PRIMERA RONDA";
                     
-                    let rivalSeed;
-                    if (finalSeed === 1) rivalSeed = 8;
-                    else if (finalSeed === 8) rivalSeed = 1;
-                    else if (finalSeed === 4) rivalSeed = 5;
-                    else if (finalSeed === 5) rivalSeed = 4;
-                    else if (finalSeed === 3) rivalSeed = 6;
-                    else if (finalSeed === 6) rivalSeed = 3;
-                    else if (finalSeed === 2) rivalSeed = 7;
-                    else if (finalSeed === 7) rivalSeed = 2;
+                    // CORRECCIÓN: Reconstruir 8 clasificados limpios y sin duplicar equipos.
+                    let clasificadosMiConf = miConfTeams.slice(0, 6); // Los 6 primeros seguros
+                    
+                    // Determinar qué IAs entran si el jugador se cuela
+                    let ai7 = miConfTeams[6].name !== p.team ? miConfTeams[6] : miConfTeams[7];
+                    let ai8 = miConfTeams[7].name !== p.team ? miConfTeams[7] : miConfTeams[8];
+                    
+                    if (finalSeed === 7) {
+                        clasificadosMiConf.push(p.teamData); // Tú como 7º
+                        clasificadosMiConf.push(ai8);        // IA como 8º
+                    } else if (finalSeed === 8) {
+                        clasificadosMiConf.push(ai7);        // IA como 7º
+                        clasificadosMiConf.push(p.teamData); // Tú como 8º
+                    } else {
+                        clasificadosMiConf.push(ai7);        // Normal
+                        clasificadosMiConf.push(ai8);        // Normal
+                    }
 
-                    p.playoffRival = miConfTeams[rivalSeed - 1] || miConfTeams[0];
-                    if (p.playoffRival.name === p.team) p.playoffRival = miConfTeams[1]; 
+                    let clasificadosOtraConf = otraConfTeams.slice(0, 8);
+                    
+                    // Construir el bracket mapeando exacto del array (asegura que s8 no sea s1, etc)
+                    let s = {};
+                    for(let i=1; i<=8; i++) s[`s${i}`] = clasificadosMiConf[i-1];
+                    let o = {};
+                    for(let i=1; i<=8; i++) o[`o${i}`] = clasificadosOtraConf[i-1];
+
+                    let rivalSeed = 9 - finalSeed;
+                    p.playoffRival = s[`s${rivalSeed}`];
                     
                     p.playoffBracket = { 
                         seedMiPos: finalSeed,
-                        s1: miConfTeams[0] || miConfTeams[0], s8: miConfTeams[7] || miConfTeams[0],
-                        s4: miConfTeams[3] || miConfTeams[0], s5: miConfTeams[4] || miConfTeams[0],
-                        s3: miConfTeams[2] || miConfTeams[0], s6: miConfTeams[5] || miConfTeams[0],
-                        s2: miConfTeams[1] || miConfTeams[0], s7: miConfTeams[6] || miConfTeams[0],
-                        o1: otraConfTeams[0] || otraConfTeams[0], o8: otraConfTeams[7] || otraConfTeams[0],
-                        o4: otraConfTeams[3] || otraConfTeams[0], o5: otraConfTeams[4] || otraConfTeams[0],
-                        o3: otraConfTeams[2] || otraConfTeams[0], o6: otraConfTeams[5] || otraConfTeams[0],
-                        o2: otraConfTeams[1] || otraConfTeams[0], o7: otraConfTeams[6] || otraConfTeams[0]
+                        s1: s.s1, s8: s.s8, s4: s.s4, s5: s.s5,
+                        s3: s.s3, s6: s.s6, s2: s.s2, s7: s.s7,
+                        o1: o.o1, o8: o.o8, o4: o.o4, o5: o.o5,
+                        o3: o.o3, o6: o.o6, o2: o.o2, o7: o.o7
                     };
                     
                     escribirDialogo(`🌟 CLASIFICADOS A PLAYOFFS. Jugamos la PRIMERA RONDA contra ${p.playoffRival.name} (${rivalSeed}º).`);
@@ -1884,7 +2183,7 @@ function draft() {
             if(winner) escribirDialogo(`🛡️ DPOY: ${winner.name} (${winner.team}) — ${winner.ropg.toFixed(1)}rob ${winner.tapg.toFixed(1)}tap`);
         }
 
-        let isRookie = (p.fase === 1 && p.history.acb.matches === 0) || (p.fase === 2 && p.history.nba.matches === 0);
+        let isRookie = (p.fase === 1 && !p.debutadoACB) || (p.fase === 2 && !p.debutadoNBA);
         if (isRookie) {
             let rookiePool = allPlayers.filter(x => x.ovr <= p.ovr + 5); 
             let bestRookieScore = rookiePool.length > 0 ? Math.max(...rookiePool.map(mvpScore)) : 0;
@@ -1897,6 +2196,8 @@ function draft() {
                 if(winner) escribirDialogo(`👶 ROOKIE DEL AÑO: ${winner.name} (${winner.team}) — ${winner.ppg.toFixed(1)}p`);
             }
         }
+        if (p.fase === 1) p.debutadoACB = true;
+        if (p.fase === 2) p.debutadoNBA = true;
 
         if (p.role === "Suplente") {
             if (allPlayers.filter(x=>x.isBench).length === 0 || mySixth >= bestSixth) {
@@ -1940,7 +2241,6 @@ function draft() {
         equiposOrdenados[1].ovr += 1;
         equiposOrdenados[2].ovr += 1;
         if(equiposOrdenados[0].roster) equiposOrdenados[0].roster[0].o += 2;
-        escribirDialogo("🔄 MERCADO: Los peores equipos de la liga han fichado agentes libres para mejorar sus plantillas.");
     }
 
     if (targetFase === 2 && p.fase === 1) {
@@ -1965,6 +2265,42 @@ function draft() {
         scrollToBottom();
     }
     guardarPartida();
+}
+
+function saltarDraftACB() {
+    p.season++;
+    
+    if (p.sponsor !== "Ninguno" && p.sponsorTimeLeft > 0) {
+        p.sponsorTimeLeft--;
+        if (p.sponsorTimeLeft <= 0) {
+            escribirDialogo(`📝 Tu contrato de patrocinio con ${p.sponsor} ha finalizado.`);
+            p.sponsor = "Ninguno";
+        }
+    }
+    
+    p.sMatches = 0;
+    p.isPlayoffs = false;
+    p.playoffStage = "";
+    p.isCopa = false;
+    p.copaPlayedThisSeason = false;
+    p.aswPlayedThisSeason = false;
+    prepararLiga();
+    updateUI();
+    let gl = document.getElementById('game-log');
+    if(gl) gl.innerHTML = '';
+    escribirDialogo(`DECISIÓN: Decides no presentarte al Draft este año. Seguirás en ${p.team} mejorando. Temporada ${p.season}/17.`);
+    
+    p.isMercado = true;
+    simularMercadoIA();
+    renderMercado();
+    guardarPartida();
+}
+
+function rechazarDraft() {
+    let gl = document.getElementById('game-log');
+    if(gl) gl.innerHTML = '';
+    escribirDialogo(`Has decidido no presentarte al Draft este año y continuar tu desarrollo un año más en <b>${p.team}</b>.`);
+    ejecutarAscenso(p.fase, p.team, p.role);
 }
 
 function ejecutarAscenso(faseTarget, teamName, rolTarget) {
@@ -1997,6 +2333,15 @@ function ejecutarAscenso(faseTarget, teamName, rolTarget) {
     p.role = rolTarget; 
     p.sMatches = 0; 
     p.season++; 
+    
+    if (p.sponsor !== "Ninguno" && p.sponsorTimeLeft > 0) {
+        p.sponsorTimeLeft--;
+        if (p.sponsorTimeLeft <= 0) {
+            escribirDialogo(`📝 Tu contrato de patrocinio con ${p.sponsor} ha finalizado.`);
+            p.sponsor = "Ninguno";
+        }
+    }
+    
     p.isPlayoffs = false; 
     p.playoffStage = ""; 
     p.aswPlayedThisSeason = false; 
@@ -2015,7 +2360,9 @@ function ejecutarAscenso(faseTarget, teamName, rolTarget) {
         escribirDialogo(`🚨 ATENCIÓN: Tu rival ${p.rivalName} ha fichado por ${p.rivalTeam}.`);
     }
     
-    renderMenu(); 
+    p.isMercado = true;
+    simularMercadoIA();
+    renderMercado();
     guardarPartida();
 }
 
@@ -2129,6 +2476,8 @@ function mostrarEquipoInfo() {
             let jugPPP = (jug.pts / mAI).toFixed(1);
             let jugRPP = (jug.reb / mAI).toFixed(1);
             let jugAPP = (jug.ast / mAI).toFixed(1);
+            let jugROP = (jug.rob / mAI).toFixed(1);
+            let jugTAP = (jug.tap / mAI).toFixed(1);
 
             html += `
             <div style="background: ${bgColor}; border: 1px solid ${borderColor}; border-radius: 8px; padding: 10px; text-align: center;">
@@ -2136,6 +2485,7 @@ function mostrarEquipoInfo() {
                 <div style="color: ${nameColor}; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size:0.85em;">${isRival ? '🔥 ' : ''}${jug.n}</div>
                 <div style="font-size: 0.7em; background: rgba(0,0,0,0.5); padding: 4px; border-radius: 4px; margin-bottom: 5px;">OVR: <span style="color:#fff; font-weight:bold;">${jug.o || 70}</span></div>
                 <div style="font-size: 0.65em; color: #ccc;">${jugPPP}p | ${jugRPP}r | ${jugAPP}a</div>
+                <div style="font-size: 0.6em; color: #888;">${jugROP}ro | ${jugTAP}ta</div>
             </div>`;
         });
     } else {
@@ -2327,28 +2677,27 @@ function updateUI() {
         let titleConf2 = e('title-conf2');
         let tableVd2 = e('table-vd-2');
 
-        const renderRow = (r, i) => {
+        const renderRow = (r, i, groupSize) => {
             let isPlayoff = false; 
             let isPlayin = false; 
             let pos = i + 1;
             
-            if (p.fase === 1) { 
+            if (p.fase === 0) {
+                if (pos <= 2) isPlayoff = true;
+            } else if (p.fase === 1) { 
                 if (pos <= 8) isPlayoff = true; 
             } else if (p.fase === 2) { 
                 if (pos <= 6) isPlayoff = true; 
                 else if (pos >= 7 && pos <= 10) isPlayin = true; 
-            } else { 
-                if (pos === 1) isPlayoff = true; 
             }
 
             let numColor = isPlayoff ? '#00ff00' : (isPlayin ? '#ffd700' : '#666'); 
             let rowColor = r.isPlayer ? 'color:var(--accent); font-weight:bold;' : (r.star === p.rivalName ? 'color:gold; font-weight:bold;' : 'color:#ddd;');
             let borderStyle = 'border-bottom: 1px solid rgba(255,255,255,0.05);';
             
-            if (p.fase === 1 && pos === 8) borderStyle = 'border-bottom: 1px dashed #00ff00;'; 
+            if ((p.fase === 0 || p.fase === 1) && pos === 8) borderStyle = 'border-bottom: 1px dashed #00ff00;'; 
             if (p.fase === 2 && pos === 6) borderStyle = 'border-bottom: 1px dashed #00ff00;'; 
             if (p.fase === 2 && pos === 10) borderStyle = 'border-bottom: 1px dashed #ffd700;'; 
-            if (p.fase === 0 && pos === 1) borderStyle = 'border-bottom: 1px dashed #00ff00;'; 
 
             return `<tr style="${rowColor} ${borderStyle}">
                         <td style="padding: 5px 0;"><span style="color:${numColor}; font-family:monospace; margin-right:4px;">${pos}.</span> ${r.name.substring(0,12)}</td>
@@ -2358,12 +2707,12 @@ function updateUI() {
 
         if (p.fase === 1) {
             let allTeams = [...leagueTable].sort((a,b) => b.v - a.v);
-            if(tableVd1) tableVd1.innerHTML = allTeams.map((r,i) => renderRow(r, i)).join('');
+            if(tableVd1) tableVd1.innerHTML = allTeams.map((r,i) => renderRow(r, i, allTeams.length)).join('');
             if(titleConf2) titleConf2.style.display = 'none'; 
             if(tableVd2) tableVd2.innerHTML = '';
         } else {
             let eqMiConf = leagueTable.filter(t => t.conf === miConfNum).sort((a,b) => b.v - a.v);
-            if(tableVd1) tableVd1.innerHTML = eqMiConf.map((r,i) => renderRow(r, i)).join('');
+            if(tableVd1) tableVd1.innerHTML = eqMiConf.map((r,i) => renderRow(r, i, eqMiConf.length)).join('');
             
             if(titleConf2 && tableVd2) {
                 if (p.fase === 0) {
@@ -2375,7 +2724,7 @@ function updateUI() {
                         let eqConf = leagueTable.filter(t => t.conf === c).sort((a,b) => b.v - a.v);
                         if (eqConf.length > 0) {
                             otherHtml += `<tr><td colspan="2" style="text-align:center; color:var(--accent); font-size:0.7em; padding-top:12px; padding-bottom:4px; border-bottom:1px solid #333;">GRUPO ${c}</td></tr>`;
-                            otherHtml += eqConf.map((r,i) => renderRow(r, i)).join('');
+                            otherHtml += eqConf.map((r,i) => renderRow(r, i, eqConf.length)).join('');
                         }
                     }
                     tableVd2.innerHTML = otherHtml;
@@ -2384,7 +2733,7 @@ function updateUI() {
                     if(eqOtraConf.length > 0) {
                         titleConf2.style.display = 'block'; 
                         titleConf2.innerText = miConfNum === 1 ? 'CONFERENCIA OESTE' : 'CONFERENCIA ESTE';
-                        tableVd2.innerHTML = eqOtraConf.map((r,i) => renderRow(r, i)).join('');
+                        tableVd2.innerHTML = eqOtraConf.map((r,i) => renderRow(r, i, eqOtraConf.length)).join('');
                     } else { 
                         titleConf2.style.display = 'none'; 
                         tableVd2.innerHTML = ''; 
@@ -2421,7 +2770,10 @@ function mostrarDraftACB() {
         </p>`;
 
     equipos.forEach(eq => {
-        let rol = p.ovr >= eq.ovr + 3 ? "Estrella" : (p.ovr >= eq.ovr - 4 ? "Titular" : "Suplente");
+        let diff = p.ovr - eq.ovr;
+        let rol = diff >= 5 ? "Estrella" : diff >= -2 ? "Titular" : diff >= -8 ? "Suplente" : "Suplente";
+        if (eq.ovr >= 85 && p.ovr < eq.ovr - 5) rol = "Suplente";
+        if (eq.ovr >= 90 && p.ovr < eq.ovr - 2) rol = "Suplente";
         let sueldo = rol === "Estrella" ? 450 : rol === "Titular" ? 250 : 200;
         let badge = rol === "Estrella" ? "🌟" : rol === "Titular" ? "✅" : "🔋";
         html += `
@@ -2431,7 +2783,13 @@ function mostrarDraftACB() {
         </button>`;
     });
 
+    html += `<button onclick="rechazarDraft()" class="btn-main" style="border-color:#555; color:#aaa; margin-top:10px; font-size:0.65em;">❌ Rechazar Draft (Quedarme en Junior un año más)</button>`;
+    
+    if (p.history.acb.matches === 0 && p.season <= 3) {
+        html += `<button onclick="saltarDraftACB()" class="btn-main" style="border-color:#888; color:#888; margin-top:5px; font-size:0.65em;">⏭️ No presentarme este año al Draft (Seguir en Junior y mejorar)</button>`;
+    }
     html += `</div>`;
+    
     let gl = document.getElementById('game-log');
     if(gl) gl.insertAdjacentHTML('beforeend', html);
     scrollToBottom();
@@ -2464,8 +2822,6 @@ function mostrarDraftNBA() {
         tier = "🤝 Agente Libre";          
     }
 
-    let rol = pick === 0 ? "Suplente" : pick <= 5 ? "Estrella" : pick <= 20 ? "Titular" : "Suplente";
-
     let nbaTeams = [...DB[2].teams];
     let interesados;
     
@@ -2478,7 +2834,6 @@ function mostrarDraftNBA() {
     }
 
     let ofertas = interesados.slice(0, 3);
-    let sueldo = rol === "Estrella" ? 450 : rol === "Titular" ? 250 : 200;
     let pickLabel = pick === 0 ? "Sin pick — Agente Libre" : `Pick #${pick}`;
 
     let html = `
@@ -2500,6 +2855,11 @@ function mostrarDraftNBA() {
         <p style="color:#aaa; font-size:0.65em; text-align:center; margin-bottom:10px;">Estas franquicias quieren fichar contigo:</p>`;
 
     ofertas.forEach(eq => {
+        let diff = p.ovr - eq.ovr;
+        let rol = diff >= 5 ? "Estrella" : diff >= -2 ? "Titular" : "Suplente";
+        if (eq.ovr >= 88 && p.ovr < eq.ovr - 3) rol = "Suplente";
+        if (eq.ovr >= 93 && p.ovr < eq.ovr) rol = "Suplente";
+        let sueldo = rol === "Estrella" ? 450 : rol === "Titular" ? 250 : 200;
         let badge = rol === "Estrella" ? "🌟" : rol === "Titular" ? "✅" : "🔋";
         html += `
         <button onclick="ejecutarAscenso(2, '${eq.name}', '${rol}')" class="btn-main"
@@ -2508,7 +2868,8 @@ function mostrarDraftNBA() {
         </button>`;
     });
 
-    html += `</div>`;
+    html += `<button onclick="rechazarDraft()" class="btn-main" style="border-color:#555; color:#aaa; margin-top:10px; font-size:0.65em;">❌ Rechazar Draft (Quedarme en ACB un año más)</button></div>`;
+    
     let gl = document.getElementById('game-log');
     if(gl) gl.insertAdjacentHTML('beforeend', html);
     scrollToBottom();
@@ -2721,7 +3082,11 @@ function allStarGame() {
 function finalizarAllStar() {
     p.aswDone = null;
     escribirDialogo('✅ All-Star Weekend finalizado. Los despachos preparan el final de temporada y la Agencia Libre...');
-    setTimeout(draft, 2500); 
+    
+    p.isMercado = true;
+    simularMercadoIA();
+    renderMercado();
+    guardarPartida();
 }
 
 // ==========================================
