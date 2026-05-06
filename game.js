@@ -243,59 +243,62 @@ function simularMercadoIA() {
 function renderMercado() {
     let act = document.getElementById('actions');
     if(!act) return;
-    
+    if(p.mercadoIntentos === undefined) p.mercadoIntentos = 3;
+
     let html = `
         <div style="font-size:0.7em; color:var(--accent); text-align:center; margin-bottom:10px; font-weight:bold;">--- 🔄 MERCADO DE VERANO ---</div>
-        <div style="font-size:0.6em; color:#fff; margin-bottom:10px; text-align:center;">El mercado está abierto. Analiza los movimientos de la IA e intenta reforzar tu propio equipo antes de que empiece la temporada.</div>
+        <div style="font-size:0.55em; color:#fff; margin-bottom:10px; text-align:center;">Tienes <b style="color:gold;">${p.mercadoIntentos}</b> intento${p.mercadoIntentos !== 1 ? 's' : ''} restante${p.mercadoIntentos !== 1 ? 's' : ''} de fichaje.</div>
         
-        <div style="background:rgba(0,0,0,0.5); border:1px solid #444; border-radius:5px; padding:10px; margin-bottom:15px;">
+        <div style="background:rgba(0,0,0,0.5); border:1px solid #444; border-radius:5px; padding:10px; margin-bottom:12px;">
             <div style="color:gold; font-size:0.65em; font-weight:bold; margin-bottom:5px;">🔥 MOVIMIENTOS DESTACADOS EN LA LIGA</div>`;
             
-    if (p.fichajesIA.length > 0) {
+    if (p.fichajesIA && p.fichajesIA.length > 0) {
         p.fichajesIA.forEach(f => {
             html += `<div style="font-size:0.55em; color:#ccc; margin-bottom:3px;">➡️ <b style="color:#fff;">${f.nombre}</b> (OVR ${f.ovr}) abandona <i>${f.de}</i> y firma por <b style="color:var(--accent);">${f.a}</b>.</div>`;
         });
     } else {
-        html += `<div style="font-size:0.55em; color:#888;">El mercado ha estado muy tranquilo. Sin grandes movimientos.</div>`;
+        html += `<div style="font-size:0.55em; color:#888;">Mercado tranquilo esta ventana.</div>`;
     }
     
-    html += `</div>
-        
+    html += `</div>`;
+
+    if (p.mercadoIntentos > 0) {
+        html += `
         <div style="background:rgba(0,0,0,0.5); border:1px solid var(--accent); border-radius:5px; padding:10px; margin-bottom:10px;">
             <div style="color:var(--accent); font-size:0.65em; font-weight:bold; margin-bottom:5px;">📋 SUGERIR UN FICHAJE PARA ${p.team.toUpperCase()}</div>
-            <p style="font-size:0.55em; color:#aaa; margin-bottom:8px;">Pídele a tu GM que intente traer a una estrella. El éxito depende de tu Fama y del nivel del jugador.</p>
+            <p style="font-size:0.55em; color:#aaa; margin-bottom:8px;">El rol ofrecido depende de la media del jugador vs tu plantilla actual.</p>
             
             <select id="sel-fichaje" style="width:100%; padding:5px; background:#222; color:#fff; border:1px solid #555; margin-bottom:8px;" onchange="calcularProbabilidadFichaje()">
                 <option value="">-- Selecciona un jugador --</option>`;
                 
-    let opcionesFichaje = [];
-    leagueTable.forEach(t => {
-        if (t.name !== p.team) {
-            t.roster.forEach(j => {
-                if (j.n !== p.name && j.n !== p.rivalName && !j.n.includes("Jugador")) {
-                    opcionesFichaje.push({ j: j, tName: t.name });
-                }
-            });
-        }
-    });
-    
-    opcionesFichaje.sort((a,b) => b.j.o - a.j.o);
-    
-    opcionesFichaje.forEach(opt => {
-        html += `<option value="${opt.j.n}|${opt.tName}|${opt.j.o}">${opt.j.n} (${opt.tName}) - OVR ${opt.j.o}</option>`;
-    });
-            
-    html += `</select>
+        let opcionesFichaje = [];
+        leagueTable.forEach(t => {
+            if (t.name !== p.team && t.roster) {
+                t.roster.forEach(j => {
+                    if (j.n !== p.name && j.n !== p.rivalName && !j.n.includes("Jugador")) {
+                        opcionesFichaje.push({ j: j, tName: t.name });
+                    }
+                });
+            }
+        });
+        opcionesFichaje.sort((a,b) => b.j.o - a.j.o);
+        opcionesFichaje.forEach(opt => {
+            html += `<option value="${opt.j.n}|${opt.tName}|${opt.j.o}">${opt.j.n} (${opt.tName}) - OVR ${opt.j.o}</option>`;
+        });
+                
+        html += `</select>
             <div id="prob-fichaje-txt" style="font-size:0.6em; color:gold; text-align:center; margin-bottom:8px;">Selecciona a alguien para ver la probabilidad.</div>
-            <button onclick="intentarFichaje()" class="btn-main" style="border-color:var(--success); color:var(--success); width:100%;">🤝 INTENTAR FICHAJE</button>
-        </div>
-        
-        <button onclick="cerrarMercado()" class="btn-main" style="border-color:#555; color:#ccc; width:100%;">⏭️ CERRAR MERCADO Y EMPEZAR TEMPORADA</button>
-    `;
+            <button onclick="intentarFichaje()" class="btn-main" style="border-color:var(--success); color:var(--success); width:100%;">🤝 INTENTAR FICHAJE (${p.mercadoIntentos} restantes)</button>
+        </div>`;
+    } else {
+        html += `<div style="font-size:0.6em; color:#555; text-align:center; margin-bottom:10px; padding:8px; border:1px solid #333; border-radius:4px;">Has agotado tus intentos de fichaje esta ventana.</div>`;
+    }
+    
+    html += `<button onclick="cerrarMercado()" class="btn-main" style="border-color:#555; color:#ccc; width:100%;">⏭️ CERRAR MERCADO Y EMPEZAR TEMPORADA</button>`;
     
     act.innerHTML = html;
 }
-
+            
 function calcularProbabilidadFichaje() {
     let sel = document.getElementById('sel-fichaje');
     let txt = document.getElementById('prob-fichaje-txt');
@@ -316,31 +319,41 @@ function calcularProbabilidadFichaje() {
 function intentarFichaje() {
     let sel = document.getElementById('sel-fichaje');
     if (!sel || !sel.value) return alert("Selecciona a un jugador primero.");
+    if (p.mercadoIntentos <= 0) return alert("No te quedan intentos de fichaje.");
     
-    let prob = parseInt(sel.dataset.prob);
+    let prob = parseInt(sel.dataset.prob) || 50;
     let parts = sel.value.split('|');
     let targetName = parts[0];
     let oldTeamName = parts[1];
+    let targetOvr = parseInt(parts[2]);
     
+    p.mercadoIntentos--;
     let roll = Math.random() * 100;
     
     if (roll <= prob) {
         let oldTeam = leagueTable.find(t => t.name === oldTeamName);
         let miEquipo = leagueTable.find(t => t.name === p.team);
         
-        let jugadorObj = oldTeam.roster.find(j => j.n === targetName);
-        oldTeam.roster = oldTeam.roster.filter(j => j.n !== targetName);
-        
-        miEquipo.roster.push(jugadorObj);
-        
-        escribirDialogo(`🚨 ¡BOMBAZO EN EL MERCADO! Tu directiva ha cerrado el fichaje de <b style="color:var(--success);">${targetName}</b>. Se une a tu equipo para esta temporada.`);
-        
+        if (oldTeam && miEquipo) {
+            let jugadorObj = oldTeam.roster.find(j => j.n === targetName);
+            if (jugadorObj) {
+                oldTeam.roster = oldTeam.roster.filter(j => j.n !== targetName);
+                miEquipo.roster.push(jugadorObj);
+
+                // Rol realista: si su OVR supera al mejor titular, es Estrella
+                let titulares = miEquipo.roster.filter(j => j.n !== targetName).sort((a,b) => b.o - a.o);
+                let mejorOvr = titulares.length > 0 ? titulares[0].o : 70;
+                let rolNuevo = targetOvr >= mejorOvr + 3 ? "Estrella" : (targetOvr >= mejorOvr - 4 ? "Titular" : "Suplente");
+
+                escribirDialogo(`🚨 ¡BOMBAZO! <b style="color:var(--success);">${targetName}</b> (OVR ${targetOvr}) ficha como <b>${rolNuevo}</b> por ${p.team}. Intentos restantes: ${p.mercadoIntentos}.`);
+            }
+        }
     } else {
-        escribirDialogo(`❌ El fichaje de <b style="color:var(--danger);">${targetName}</b> se ha frustrado. Prefiere quedarse en su equipo o pedir más dinero del que tenemos.`);
+        escribirDialogo(`❌ El fichaje de <b style="color:var(--danger);">${targetName}</b> se ha frustrado. Intentos restantes: ${p.mercadoIntentos}.`);
     }
     
     recalcularMediasEquipos();
-    cerrarMercado();
+    renderMercado();
 }
 
 function cerrarMercado() {
@@ -665,29 +678,85 @@ function toggleEntrenar() {
     if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
 
+// =====================================================================
+// SISTEMA BUILD POINTS ESTILO 2K
+// =====================================================================
+
+// Caps máximos por posición y estilo (adaptado de 2K según posición)
+function getAttrCaps() {
+    const h = parseInt(p.height) || 190;
+    const pos = p.pos;
+    // Base: tiro y manejo altos, mate y tapón bajos
+    // Pívot: mate y tapón altos, tiro y manejo bajos
+    // La altura también afecta: alto = mejor mate/tap/reb, peor manejo/tiro
+    
+    let altoBonus = h >= 210 ? 8 : (h >= 205 ? 5 : (h >= 200 ? 2 : 0));
+    let altoNerf  = h >= 210 ? 12 : (h >= 205 ? 8 : (h >= 200 ? 4 : 0));
+
+    const caps = {
+        'Base':      { fisico:90, tiro:99, manejo:99, bandeja:90, mate:75+altoBonus, def:85, tapón:72+altoBonus, robo:88 },
+        'Escolta':   { fisico:90, tiro:99, manejo:92, bandeja:92, mate:82+altoBonus, def:88, tapón:78+altoBonus, robo:85 },
+        'Alero':     { fisico:92, tiro:92, manejo:86, bandeja:94, mate:90+altoBonus, def:90, tapón:85+altoBonus, robo:82 },
+        'Ala-Pívot': { fisico:95, tiro:85, manejo:78, bandeja:96, mate:95+altoBonus, def:94, tapón:92+altoBonus, robo:78 },
+        'Pívot':     { fisico:99, tiro:75, manejo:70, bandeja:98, mate:99,           def:96, tapón:99,           robo:72 },
+    };
+
+    let c = caps[pos] || caps['Alero'];
+    // Aplicar nerf de altura en tiro/manejo para jugadores altos
+    if (altoNerf > 0) {
+        c = { ...c };
+        c.tiro    = Math.max(70, c.tiro    - altoNerf);
+        c.manejo  = Math.max(65, c.manejo  - altoNerf);
+        c.robo    = Math.max(65, c.robo    - Math.floor(altoNerf/2));
+    }
+    // Nunca superar 99
+    Object.keys(c).forEach(k => { c[k] = Math.min(99, c[k]); });
+    return c;
+}
+
+// Puntos de build gastados = suma de (valor - 65) por cada atributo
+function getBuildPointsUsed() {
+    const attrs = ['fisico','tiro','manejo','bandeja','mate','def','tapón','robo'];
+    return attrs.reduce((s, a) => s + Math.max(0, (p[a]||65) - 65), 0);
+}
+
+const TOTAL_BUILD_POINTS = 450; // Total de puntos disponibles (como 2K)
+
 function getAttrCost(val) {
-    if (val >= 90) return 8500;
-    if (val >= 85) return 4000;
-    if (val >= 80) return 1800;
-    if (val >= 75) return 650;
-    if (val >= 70) return 200;
-    return 75; 
+    // Coste en dinero — escala con el valor actual del atributo
+    if (val >= 93) return 12000;
+    if (val >= 88) return 7000;
+    if (val >= 83) return 3500;
+    if (val >= 78) return 1500;
+    if (val >= 73) return 600;
+    if (val >= 68) return 200;
+    return 80;
 }
 
 function trainAttr(attr) {
     let capOvr = (p.fase === 1) ? 83 : DB[p.fase].maxOvr;
     if (p.ovr >= capOvr) return alert(`Límite OVR alcanzado en esta liga (${capOvr}).`);
 
-    let cost = getAttrCost(p[attr]);
+    // Check build points
+    let used = getBuildPointsUsed();
+    if (used >= TOTAL_BUILD_POINTS) return alert(`Has gastado todos tus puntos de build (${TOTAL_BUILD_POINTS}). Para subir un atributo debes tener puntos libres.`);
+
+    // Check attribute cap by position+height
+    let caps = getAttrCaps();
+    let capAttr = caps[attr] || 99;
+    if ((p[attr]||65) >= capAttr) return alert(`Este atributo está al máximo para tu posición y altura (${capAttr}).`);
+
+    let cost = getAttrCost(p[attr]||65);
     let cMod = p.personality === "deportista" ? Math.floor(cost * 0.8) : cost;
     if (p.money < cMod) return alert(`Fondos insuficientes. Necesitas ${cMod}€.`);
 
     p.money -= cMod;
-    p[attr] += 1;
+    p[attr] = (p[attr]||65) + 1;
     p.ovr = Math.min(capOvr, calcOvr());
 
     const nombres = { fisico:'FÍSICO', tiro:'TIRO', def:'DEFENSA', manejo:'MANEJO', bandeja:'BANDEJA', mate:'MATE', 'tapón':'TAPÓN', robo:'ROBO' };
-    escribirDialogo(`💪 ${nombres[attr]} subido a ${p[attr]}. OVR: ${p.ovr}.`);
+    let remaining = TOTAL_BUILD_POINTS - getBuildPointsUsed();
+    escribirDialogo(`💪 ${nombres[attr]} → ${p[attr]}. OVR: ${p.ovr}. Puntos restantes: ${remaining}/${TOTAL_BUILD_POINTS}.`);
     evalRole(); updateUI(); renderMenu();
 }
 
@@ -706,6 +775,11 @@ function renderMenu() {
     let btnText = p.isCopa ? `▶ JUGAR COPA (${p.copaStage})` : (p.isPlayoffs ? `▶ JUGAR ${p.playoffStage}` : "▶ JUGAR PARTIDO");
     let btnBorder = p.isCopa ? 'border-color: #0ff; color: #0ff;' : (p.isPlayoffs ? 'border-color: gold; color: gold;' : '');
     
+    let caps = getAttrCaps();
+    let bpUsed = getBuildPointsUsed();
+    let bpLeft = TOTAL_BUILD_POINTS - bpUsed;
+    let bpColor = bpLeft <= 20 ? 'var(--danger)' : (bpLeft <= 80 ? 'gold' : 'var(--success)');
+
     let cFis = p.personality==="deportista" ? Math.floor(getAttrCost(p.fisico)*0.8)  : getAttrCost(p.fisico);
     let cTir = p.personality==="deportista" ? Math.floor(getAttrCost(p.tiro)*0.8)    : getAttrCost(p.tiro);
     let cDef = p.personality==="deportista" ? Math.floor(getAttrCost(p.def)*0.8)     : getAttrCost(p.def);
@@ -714,6 +788,14 @@ function renderMenu() {
     let cMat = p.personality==="deportista" ? Math.floor(getAttrCost(p.mate)*0.8)    : getAttrCost(p.mate);
     let cTap = p.personality==="deportista" ? Math.floor(getAttrCost(p['tapón'])*0.8): getAttrCost(p['tapón']);
     let cRob = p.personality==="deportista" ? Math.floor(getAttrCost(p.robo)*0.8)    : getAttrCost(p.robo);
+
+    // Función helper para botón con cap
+    const attrBtn = (fn, icon, label, val, cap, cost) => {
+        let atMax = val >= cap || bpLeft <= 0;
+        let col = val >= cap ? '#555' : 'inherit';
+        let capTxt = val >= cap ? ' [MAX]' : `/${cap}`;
+        return `<button onclick="trainAttr('${fn}')" class="btn-main" style="font-size:0.52em;padding:5px;text-transform:none;${atMax?'border-color:#333;color:#555;':''}">${icon} ${label} ${val}${capTxt} — ${cost}€</button>`;
+    };
 
     let act = document.getElementById('actions');
     if(!act) return;
@@ -729,16 +811,16 @@ function renderMenu() {
             <button onclick="mostrarPremios()" class="btn-main" style="flex:1; border-color:#0ff; color:#0ff;">🏆 PREMIOS</button>
         </div>
         <div id="panel-entrenar" style="display:none; background:#111; border:1px solid #333; border-radius:4px; padding:6px; margin-top:2px;">
-            <div style="color:#0f0; font-size:0.55em; text-align:center; margin-bottom:5px; letter-spacing:1px;">💪 ELIGE ATRIBUTO A MEJORAR</div>
+            <div style="color:${bpColor};font-size:0.55em;text-align:center;margin-bottom:5px;font-weight:bold;">🧬 PUNTOS BUILD: ${bpLeft}/${TOTAL_BUILD_POINTS}</div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">
-                <button onclick="trainAttr('fisico')"  class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">🏃 FÍS ${p.fisico} — ${cFis}€</button>
-                <button onclick="trainAttr('tiro')"    class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">🎯 TIR ${p.tiro} — ${cTir}€</button>
-                <button onclick="trainAttr('manejo')"  class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">🏀 MAN ${p.manejo} — ${cMan}€</button>
-                <button onclick="trainAttr('bandeja')" class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">🤸 BAN ${p.bandeja} — ${cBan}€</button>
-                <button onclick="trainAttr('mate')"    class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">💥 MAT ${p.mate} — ${cMat}€</button>
-                <button onclick="trainAttr('def')"     class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">🛡️ DEF ${p.def} — ${cDef}€</button>
-                <button onclick="trainAttr('tapón')"   class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">✋ TAP ${p['tapón']} — ${cTap}€</button>
-                <button onclick="trainAttr('robo')"    class="btn-main" style="font-size:0.55em;padding:5px;text-transform:none;">⚡ ROB ${p.robo} — ${cRob}€</button>
+                ${attrBtn('fisico',  '🏃', 'FÍS', p.fisico,   caps.fisico,   cFis)}
+                ${attrBtn('tiro',    '🎯', 'TIR', p.tiro,     caps.tiro,     cTir)}
+                ${attrBtn('manejo',  '🏀', 'MAN', p.manejo,   caps.manejo,   cMan)}
+                ${attrBtn('bandeja', '🤸', 'BAN', p.bandeja,  caps.bandeja,  cBan)}
+                ${attrBtn('mate',    '💥', 'MAT', p.mate,     caps.mate,     cMat)}
+                ${attrBtn('def',     '🛡️', 'DEF', p.def,      caps.def,      cDef)}
+                ${attrBtn('tapón',   '✋', 'TAP', p['tapón'], caps['tapón'], cTap)}
+                ${attrBtn('robo',    '⚡', 'ROB', p.robo,     caps.robo,     cRob)}
             </div>
         </div>
         <div style="display:flex; gap:5px;">
@@ -1258,7 +1340,7 @@ function getProbabilidad(accion) {
                    (accion==='ro') ? p.robo :
                    (accion==='ta') ? p['tapón'] : Math.max(p.fisico, p.def)+10;
                    
-    let proNerf = p.fase === 1 ? 15 : (p.fase === 2 ? 10 : 0); 
+    let proNerf = p.fase === 1 ? 12 : (p.fase === 2 ? 14 : 0); 
     
     let chemMod = 0;
     if (p.chem < 40) chemMod = -5;
@@ -2290,7 +2372,7 @@ function saltarDraftACB() {
     if(gl) gl.innerHTML = '';
     escribirDialogo(`DECISIÓN: Decides no presentarte al Draft este año. Seguirás en ${p.team} mejorando. Temporada ${p.season}/17.`);
     
-    p.isMercado = true;
+    p.isMercado = true; p.mercadoIntentos = 3;
     simularMercadoIA();
     renderMercado();
     guardarPartida();
@@ -2360,7 +2442,7 @@ function ejecutarAscenso(faseTarget, teamName, rolTarget) {
         escribirDialogo(`🚨 ATENCIÓN: Tu rival ${p.rivalName} ha fichado por ${p.rivalTeam}.`);
     }
     
-    p.isMercado = true;
+    p.isMercado = true; p.mercadoIntentos = 3;
     simularMercadoIA();
     renderMercado();
     guardarPartida();
@@ -3083,7 +3165,7 @@ function finalizarAllStar() {
     p.aswDone = null;
     escribirDialogo('✅ All-Star Weekend finalizado. Los despachos preparan el final de temporada y la Agencia Libre...');
     
-    p.isMercado = true;
+    p.isMercado = true; p.mercadoIntentos = 3;
     simularMercadoIA();
     renderMercado();
     guardarPartida();
