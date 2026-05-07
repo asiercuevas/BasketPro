@@ -17,6 +17,11 @@ let p = {
     trainCount: 0,
     fame: 10, 
     chem: 50, 
+    viralidad: 0, 
+    sponsorContratos: [], 
+    sponsorRechazadas: [], 
+    sponsorObjetivo: null, 
+    agenciaOfertas: null, 
     rings: 0, 
     mvps: 0, 
     allStars: 0, 
@@ -26,15 +31,8 @@ let p = {
     copas: 0, 
     ligasJunior: 0, 
     ligasACB: 0,
-    hasShoe: false, 
-    rivalReconciled: false, 
-    hasHouse: false, 
-    hasCar: false, 
-    hasWatch: false, 
-    proGear: false, 
-    sponsor: "Ninguno",
-    sponsorTimeLeft: 0,
-    ofertaPendiente: "",
+        rivalReconciled: false, 
+                            ofertaPendiente: "",
     tiro: 65, 
     fisico: 65, 
     bandeja: 65, 
@@ -824,6 +822,7 @@ function renderMenu() {
             </div>
         </div>
         <div style="display:flex; gap:5px;">
+            <button onclick="renderAgencia()" class="btn-main" style="flex:1; border-color:#0ff; color:#0ff;">🏢 AGENCIA</button>
             <button onclick="renderVidaPrivada()" class="btn-main" style="flex:1; border-color: gold; color: gold;">💵 VIDA PRIVADA</button>
             <button onclick="pedirTraspaso()" class="btn-main btn-trade" style="flex:1;" ${p.isPlayoffs || p.isCopa ? 'disabled' : ''}>🔄 TRASPASO</button>
         </div>
@@ -1036,11 +1035,24 @@ function renderVidaPrivada() {
         <div style="font-size:0.7em;color:gold;margin-bottom:6px;text-align:center;font-weight:bold;">--- VIDA PRIVADA ---</div>
         <div style="font-size:0.6em;color:${felColor};text-align:center;margin-bottom:8px;padding:4px;border:1px solid ${felColor};border-radius:4px;">😊 FELICIDAD: ${fel}/100 — ${felMsg}</div>
         
+        <div style="display:flex; justify-content:space-around; background: #111; padding: 5px; border-radius: 5px; margin-bottom: 10px;">
+            <span style="color:#aaa; font-size:0.65em;">🌟 Fama: <b style="color:#fff;">${p.fame}</b></span>
+            <span style="color:#aaa; font-size:0.65em;">📱 Viralidad: <b style="color:#00ffcc;">${p.viralidad}</b></span>
+        </div>
+
+        <button onclick="renderAgencia()" class="btn-main" style="border-color: gold; color: gold; margin-bottom: 10px;">
+            🏢 IR A LA AGENCIA DE PATROCINIOS
+        </button>
+        
+        <button onclick="accionRedesSociales()" class="btn-main" style="border-color: #00ffcc; color: #00ffcc; margin-bottom: 10px;">
+            📱 GESTIONAR REDES (-50€) | +2 Viralidad, +1 Fama
+        </button>
+
         <div style="color:var(--accent);font-size:0.55em;margin-bottom:3px;letter-spacing:1px;">🍔 OCIO</div>
-        <button onclick="ejecutarGasto('kebab')" class="btn-main" style="text-transform:none;font-size:0.7em;">🥙 KEBAB (15€) | -1 Fís, -2 Fel</button>
+        <button onclick="ejecutarGasto('kebab')" class="btn-main" style="text-transform:none;font-size:0.7em;">🥙 KEBAB (15€) | -1 Vir, -2 Fel</button>
         <button onclick="ejecutarGasto('fiesta')" class="btn-main" style="text-transform:none;font-size:0.7em;">🍺 FIESTA (500€) | +3 Fam, -5 Qui, +8 Fel</button>
-        <button onclick="ejecutarGasto('crio')" class="btn-main" style="text-transform:none;font-size:0.7em;">❄️ CRIOTERAPIA (1.5K€) | +5 Fís, +5 Fel</button>
-        <button onclick="ejecutarGasto('vaca')" class="btn-main" style="text-transform:none;font-size:0.7em;">🏖️ VACACIONES (2K€) | Reset Fís, +20 Fel</button>
+        <button onclick="ejecutarGasto('crio')" class="btn-main" style="text-transform:none;font-size:0.7em;">❄️ CRIOTERAPIA (1.5K€) | +5 Vir, +5 Fel</button>
+        <button onclick="ejecutarGasto('vaca')" class="btn-main" style="text-transform:none;font-size:0.7em;">🏖️ VACACIONES (2K€) | +10 Vir, +20 Fel</button>
         
         <div style="color:var(--accent);font-size:0.55em;margin:6px 0 3px;letter-spacing:1px;">👨‍👩‍👧 FAMILIA & AMIGOS</div>
         <button onclick="ejecutarGasto('llamada')" class="btn-main" style="text-transform:none;font-size:0.7em;border-color:#ff9;color:#ff9;">📞 Llamar a casa (gratis) | +5 Fel</button>
@@ -1050,34 +1062,38 @@ function renderVidaPrivada() {
         <button onclick="ejecutarGasto('viaje')" class="btn-main" style="text-transform:none;font-size:0.7em;border-color:#ff9;color:#ff9;">✈️ Viaje familia (3K€) | +25 Fel, +10 Qui</button>
         <button onclick="ejecutarGasto('donacion')" class="btn-main" style="text-transform:none;font-size:0.7em;border-color:#ff9;color:#ff9;">❤️ Donación (1K€) | +10 Fam, +15 Fel</button>
         
-        <div style="color:var(--accent);font-size:0.55em;margin:6px 0 3px;letter-spacing:1px;">🏋️ RENDIMIENTO</div>
-        <button onclick="ejecutarGasto('gear')" class="btn-main" ${p.proGear?'disabled':''} style="text-transform:none;font-size:0.7em;${p.proGear?'border-color:#333;color:#555;':''}">👟 EQUIPO PRO (3K€) | +2 Tiro, +2 Ban</button>
-        <button onclick="ejecutarGasto('entrenador')" class="btn-main" style="text-transform:none;font-size:0.7em;">🧠 COACH MENTAL (5K€) | +15 Qui, +5 Fel</button>
-        
-        <div style="color:var(--accent);font-size:0.55em;margin:6px 0 3px;letter-spacing:1px;">💎 LUJO</div>
-        <button onclick="ejecutarGasto('reloj')" class="btn-main" ${p.hasWatch?'disabled':''} style="text-transform:none;font-size:0.7em;${p.hasWatch?'border-color:#333;color:#555;':''}">⌚ RELOJ ORO (12K€) | +4 Fam</button>
-        <button onclick="ejecutarGasto('coche')" class="btn-main" ${p.hasCar?'disabled':''} style="text-transform:none;font-size:0.7em;${p.hasCar?'border-color:#333;color:#555;':''}">🏎️ DEPORTIVO (50K€) | +5 Fam</button>
-        <button onclick="ejecutarGasto('mansion')" class="btn-main" ${p.hasHouse?'disabled':''} style="text-transform:none;font-size:0.7em;border-color:gold;${p.hasHouse?'border-color:#333;color:#555;':'color:gold;'}">🏠 MANSIÓN (150K€) | +10 Fam</button>
-        
         <button onclick="renderAnimaciones()" class="btn-main" style="border-color:#0ff;color:#0ff;margin-top:5px;width:100%;">🎬 ANIMACIONES</button>
         <button onclick="renderMenu()" class="btn-main" style="border-color:#555;color:#ccc;margin-top:5px;">⬅ VOLVER</button>
     `;
 }
 
+function accionRedesSociales() {
+    if (p.money < 50) {
+        alert("Necesitas al menos 50€ para invertir en tus redes.");
+        return;
+    }
+    p.money -= 50;
+    p.viralidad += 2;
+    p.fame += 1;
+    escribirDialogo("📱 Has invertido 50€ en crear contenido. ¡+2 Viralidad, +1 Fama!");
+    updateUI();
+    renderVidaPrivada();
+}
+
 function ejecutarGasto(tipo) {
     let f = p.felicidad || 50;
     if (tipo === 'kebab' && p.money >= 15) { 
-        p.money -= 15; p.fisico = Math.max(0, p.fisico-1); p.felicidad = Math.max(0, f-2);
-        escribirDialogo("🥙 KEBAB: Te saltas la dieta. -1 Físico, -2 Felicidad."); 
+        p.money -= 15; p.viralidad = Math.max(0, p.viralidad-1); p.felicidad = Math.max(0, f-2);
+        escribirDialogo("🥙 KEBAB: Comida basura en directo. -1 Viralidad, -2 Felicidad."); 
     } else if (tipo === 'fiesta' && p.money >= 500) { 
         p.money -= 500; p.fame += 3; p.chem -= 5; p.felicidad = Math.min(100, f+8);
         escribirDialogo("🍺 FIESTA: Noche VIP. +3 Fama, -5 Química, +8 Felicidad."); 
     } else if (tipo === 'crio' && p.money >= 1500) { 
-        p.money -= 1500; p.fisico = Math.min(100, p.fisico+5); p.felicidad = Math.min(100, f+5);
-        escribirDialogo("❄️ CRIOTERAPIA: Recuperación extrema. +5 Físico, +5 Felicidad."); 
+        p.money -= 1500; p.viralidad += 5; p.felicidad = Math.min(100, f+5);
+        escribirDialogo("❄️ CRIOTERAPIA: Recuperación extrema. +5 Viralidad, +5 Felicidad."); 
     } else if (tipo === 'vaca' && p.money >= 2000) { 
-        p.money -= 2000; p.fisico = 100; p.felicidad = Math.min(100, f+20);
-        escribirDialogo("🏖️ VACACIONES: Desconexión total. Físico al 100%, +20 Felicidad."); 
+        p.money -= 2000; p.viralidad += 10; p.felicidad = Math.min(100, f+20);
+        escribirDialogo("🏖️ VACACIONES: Desconexión total. +10 Viralidad, +20 Felicidad."); 
     } else if (tipo === 'llamada') { 
         p.felicidad = Math.min(100, f+5);
         escribirDialogo("📞 LLAMADA A CASA: Escuchar la voz de tu familia lo cambia todo. +5 Felicidad."); 
@@ -1096,21 +1112,9 @@ function ejecutarGasto(tipo) {
     } else if (tipo === 'donacion' && p.money >= 1000) { 
         p.money -= 1000; p.fame = Math.min(FAME_MAX, p.fame+10); p.felicidad = Math.min(100, f+15);
         escribirDialogo("❤️ DONACIÓN: Dar sin esperar nada. +10 Fama, +15 Felicidad."); 
-    } else if (tipo === 'gear' && p.money >= 3000) { 
-        p.money -= 3000; p.proGear = true; p.tiro += 2; p.bandeja += 2;
-        escribirDialogo("👟 EQUIPO PRO: Botas de élite. +2 Tiro, +2 Bandeja."); 
     } else if (tipo === 'entrenador' && p.money >= 5000) { 
         p.money -= 5000; p.chem = Math.min(100, p.chem+15); p.felicidad = Math.min(100, f+5);
         escribirDialogo("🧠 COACH MENTAL: +15 Química, +5 Felicidad."); 
-    } else if (tipo === 'reloj' && p.money >= 12000) { 
-        p.money -= 12000; p.hasWatch = true; p.fame = Math.min(FAME_MAX, p.fame+4);
-        escribirDialogo("⌚ RELOJ DE ORO: Puro estatus. +4 Fama."); 
-    } else if (tipo === 'coche' && p.money >= 50000) { 
-        p.money -= 50000; p.hasCar = true; p.fame = Math.min(FAME_MAX, p.fame+5);
-        escribirDialogo("🏎️ DEPORTIVO: Llegas rugiendo. +5 Fama."); 
-    } else if (tipo === 'mansion' && p.money >= 150000) { 
-        p.money -= 150000; p.hasHouse = true; p.fame = Math.min(FAME_MAX, p.fame+10);
-        escribirDialogo("🏠 MANSIÓN: +10 Fama."); 
     } else { 
         alert("No tienes suficiente dinero."); return;
     }
@@ -1123,52 +1127,7 @@ function ejecutarGasto(tipo) {
     renderVidaPrivada();
 }
 
-function checkPatrocinios() {
-    if (p.sponsor !== "Ninguno" && p.sponsorTimeLeft > 0) return; 
-    
-    if (p.fame >= 75 && p.ofertaPendiente !== "Global Sports" && p.sponsor !== "Global Sports") {
-        p.ofertaPendiente = "Global Sports";
-        mostrarOfertaPatrocinio("Global Sports", 400, 3);
-    } else if (p.fame >= 45 && p.fame < 75 && p.ofertaPendiente !== "Kicks Brand" && p.sponsor !== "Kicks Brand") {
-        p.ofertaPendiente = "Kicks Brand";
-        mostrarOfertaPatrocinio("Kicks Brand", 150, 2);
-    } else if (p.fame >= 20 && p.fame < 45 && p.ofertaPendiente !== "Deportes Paco" && p.sponsor !== "Deportes Paco") {
-        p.ofertaPendiente = "Deportes Paco";
-        mostrarOfertaPatrocinio("Deportes Paco", 50, 1);
-    }
-}
-
-function mostrarOfertaPatrocinio(marca, pago, duracion) {
-    let html = `
-    <div class="dialog-box log-entry" style="border-color: #0ff; background: rgba(0,255,255,0.05);">
-        <h3 style="color:#0ff; text-align:center; font-size:0.8em; margin-bottom: 5px;">🤝 OFERTA DE PATROCINIO</h3>
-        <p style="font-size:0.65em; text-align:center; color:#ccc;">La marca <b>${marca}</b> te ofrece un contrato de ${pago}€ extra por victoria durante <b>${duracion} temporadas</b>.</p>
-        <div style="display:flex; gap:5px; margin-top:8px;">
-            <button onclick="aceptarPatrocinio('${marca}', ${duracion}, this)" class="btn-main" style="flex:1; border-color:var(--success); color:var(--success);">✅ ACEPTAR</button>
-            <button onclick="rechazarPatrocinio(this)" class="btn-main" style="flex:1; border-color:var(--danger); color:var(--danger);">❌ RECHAZAR</button>
-        </div>
-    </div>`;
-    let gl = document.getElementById('game-log');
-    if(gl) gl.insertAdjacentHTML('beforeend', html);
-    scrollToBottom();
-}
-
-function aceptarPatrocinio(marca, duracion, btn) {
-    p.sponsor = marca;
-    p.sponsorTimeLeft = duracion;
-    p.ofertaPendiente = "";
-    escribirDialogo(`🤝 Has firmado un contrato con ${marca} por ${duracion} temporadas.`);
-    if(btn && btn.parentElement) btn.parentElement.innerHTML = `<span style="color:var(--success); font-size:0.7em;">Oferta aceptada.</span>`;
-    updateUI();
-    guardarPartida();
-}
-
-function rechazarPatrocinio(btn) {
-    p.ofertaPendiente = "";
-    escribirDialogo(`❌ Has rechazado la oferta de patrocinio.`);
-    if(btn && btn.parentElement) btn.parentElement.innerHTML = `<span style="color:var(--danger); font-size:0.7em;">Oferta rechazada.</span>`;
-    guardarPartida();
-}
+// Patrocinios gestionados por sponsors.js — ver renderAgencia(), checkObjetivoSponsor(), procesarContratosFinTemporada(), getSponsorBonus()
 
 function renderAnimaciones() {
     let act = document.getElementById('actions');
@@ -1263,6 +1222,11 @@ function play() {
     if (p.fase === 0) { 
         match.finalBaseMyScore += 1; 
         match.finalBaseRivScore -= 1; 
+    }
+    
+    if (p.fase === 2) {
+        match.finalBaseMyScore -= 1.5;
+        match.finalBaseRivScore += 1.5;
     } 
 
     match.myScore = 0; 
@@ -1276,6 +1240,7 @@ function play() {
     for(let i=0; i<attPlays; i++) match.pool.push("ATAQUE");
     for(let i=0; i<defPlays; i++) match.pool.push("DEFENSA");
     match.pool.sort(() => Math.random() - 0.5);
+    match.usedContexts = { ataque: [], defensa: [] };
 
     match.ritmo = ["LENTO", "NORMAL", "RÁPIDO"][Math.floor(Math.random()*3)];
 
@@ -1427,11 +1392,13 @@ function next() {
             <button onclick="res('t', ${match.j})" style="grid-column: span 2;">TRIPLE HEROICO [${getProbabilidad('t')}%]</button>
         `;
     } else {
-        let comentarioNormal = typeof COMENTARIOS_NORMALES !== 'undefined' ? COMENTARIOS_NORMALES[Math.floor(Math.random() * COMENTARIOS_NORMALES.length)] : "";
-        if(comentarioNormal) {
+        let contexto = (typeof getContextoJugada === 'function')
+            ? getContextoJugada(tipo, p, match)
+            : (typeof COMENTARIOS_NORMALES !== 'undefined' ? COMENTARIOS_NORMALES[Math.floor(Math.random() * COMENTARIOS_NORMALES.length)] : "");
+        if (contexto) {
             html += `
-            <div style="grid-column: span 2; font-size: 0.65em; font-style: italic; color: #0ff; background: rgba(0, 255, 255, 0.1); border-left: 3px solid #0ff; padding: 8px; text-align: center; margin-bottom: 12px; text-shadow: 0 0 3px #0ff;">
-                ${comentarioNormal}
+            <div style="grid-column: span 2; font-size: 0.65em; font-style: italic; color: #0ff; background: rgba(0, 255, 255, 0.07); border-left: 3px solid #0ff; padding: 10px 12px; margin-bottom: 12px; text-shadow: 0 0 3px #0ff; line-height: 1.5;">
+                ${contexto}
             </div>`;
         }
         
@@ -1790,13 +1757,10 @@ function finish() {
     let fameDiff = fameAfter - fameBefore;
     let fameDiffStr = fameDiff > 0 ? `+${fameDiff}` : `${fameDiff}`;
 
-    checkPatrocinios();
-
-    let sueldo = p.role === "Estrella" ? 450 : (p.role === "Titular" ? 250 : 200);
-    let extraSponsor = 0;
-    if (p.sponsor === "Deportes Paco") extraSponsor = 50;
-    if (p.sponsor === "Kicks Brand") extraSponsor = 150;
-    if (p.sponsor === "Global Sports") extraSponsor = 400;
+    // Patrocinios (sponsors.js)
+    let sueldo = p.role === "Estrella" ? 450 : p.role === "Titular" ? 250 : 200;
+    let extraSponsor = typeof getSponsorBonus === 'function' ? getSponsorBonus(win) : 0;
+    if (typeof checkObjetivoSponsor === 'function') checkObjetivoSponsor(Math.floor(gamePts), Math.floor(gameAst), Math.floor(gameReb), Math.floor(gameRob), Math.floor(gameTap), win);
     
     if (p.personality === "ambicioso") { 
         sueldo = Math.floor(sueldo * 1.5); 
@@ -2352,13 +2316,7 @@ function draft() {
 function saltarDraftACB() {
     p.season++;
     
-    if (p.sponsor !== "Ninguno" && p.sponsorTimeLeft > 0) {
-        p.sponsorTimeLeft--;
-        if (p.sponsorTimeLeft <= 0) {
-            escribirDialogo(`📝 Tu contrato de patrocinio con ${p.sponsor} ha finalizado.`);
-            p.sponsor = "Ninguno";
-        }
-    }
+    if (typeof procesarContratosFinTemporada === "function") procesarContratosFinTemporada();
     
     p.sMatches = 0;
     p.isPlayoffs = false;
@@ -2416,13 +2374,7 @@ function ejecutarAscenso(faseTarget, teamName, rolTarget) {
     p.sMatches = 0; 
     p.season++; 
     
-    if (p.sponsor !== "Ninguno" && p.sponsorTimeLeft > 0) {
-        p.sponsorTimeLeft--;
-        if (p.sponsorTimeLeft <= 0) {
-            escribirDialogo(`📝 Tu contrato de patrocinio con ${p.sponsor} ha finalizado.`);
-            p.sponsor = "Ninguno";
-        }
-    }
+    if (typeof procesarContratosFinTemporada === "function") procesarContratosFinTemporada();
     
     p.isPlayoffs = false; 
     p.playoffStage = ""; 

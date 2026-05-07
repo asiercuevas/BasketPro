@@ -50,7 +50,7 @@ const StorySystem = {
         [
             { text: "CARISMA (Bromear con la prensa) [+1.5 Fama]", action: () => { p.fame += 1.5; } },
             { text: "HUMILDAD (Elogiar a los compañeros) [+1 Fama, +2 Química]", action: () => { p.fame += 1; p.chem = Math.min(100, p.chem+2); } },
-            { text: "ARROGANCIA (Soy el mejor) [-2 Fama, +1 Físico por ego]", action: () => { p.fame -= 2; p.fisico = Math.min(100, p.fisico+1); } }
+            { text: "ARROGANCIA (Soy el mejor) [-2 Fama, +1 Viralidad por ego]", action: () => { p.fame -= 2; p.viralidad += 1; } }
         ], 'flash_' + Date.now());
     },
 
@@ -60,67 +60,56 @@ const StorySystem = {
     lanzarEventoAleatorio: function() {
         let pool = [
             { t: "📸 FAN PESADO", d: "Estás cenando y un fan muy pesado te pide una foto mientras comes. Es la quinta vez que te interrumpe.",
-              o: [{ text: "Sonreír y hacerte la foto (+2 Fama, -1 Físico)", action: () => { p.fame += 2; p.fisico -= 1; } },
+              o: [{ text: "Sonreír y hacerte la foto (+2 Fama, -1 Viralidad)", action: () => { p.fame += 2; p.viralidad -= 1; } },
                   { text: "Decirle educadamente que te deje cenar (-1 Fama, +1 Química)", action: () => { p.fame -= 1; p.chem += 1; } }]},
             { t: "✈️ VUELO RETRASADO", d: "El vuelo del equipo se ha retrasado 6 horas. Estáis atrapados en el aeropuerto.",
-              o: [{ text: "Dormir en el suelo (-3 Físico)", action: () => { p.fisico -= 3; } },
-                  { text: "Jugar a las cartas con el equipo (+5 Química, -1 Físico)", action: () => { p.chem = Math.min(100, p.chem+5); p.fisico -= 1; } }]},
+              o: [{ text: "Dormir en el suelo (-5 Felicidad)", action: () => { p.felicidad = Math.max(0, p.felicidad - 5); } },
+                  { text: "Jugar a las cartas con el equipo (+5 Química, -2 Felicidad)", action: () => { p.chem = Math.min(100, p.chem+5); p.felicidad -= 2; } }]},
             { t: "📰 RUMOR FALSO", d: "Un portal de noticias inventa que te peleaste con el entrenador en el último entreno.",
               o: [{ text: "Desmentirlo en X/Twitter (+1 Fama)", action: () => { p.fame += 1; } },
                   { text: "Ignorarlo, el vestuario sabe la verdad (+3 Química)", action: () => { p.chem = Math.min(100, p.chem+3); } }]},
             { t: "🍔 CENA TRAMPA", d: "El equipo ha pedido comida rápida gigante para celebrar. Huele increíble.",
-              o: [{ text: "Comer como si no hubiera un mañana (-2 Físico, +4 Química)", action: () => { p.fisico -= 2; p.chem = Math.min(100, p.chem+4); } },
-                  { text: "Comer tu ensalada triste (+2 Físico, -2 Química)", action: () => { p.fisico += 2; p.chem -= 2; } }]},
+              o: [{ text: "Comer como si no hubiera un mañana (-1 Viralidad, +4 Química)", action: () => { p.viralidad = Math.max(0, p.viralidad - 1); p.chem = Math.min(100, p.chem+4); } },
+                  { text: "Comer tu ensalada triste (+2 Felicidad, -2 Química)", action: () => { p.felicidad += 2; p.chem -= 2; } }]},
             { t: "👟 ZAPATILLAS NUEVAS", d: "Te han enviado unas zapatillas en fase de pruebas. Son bonitas pero te aprietan un poco.",
-              o: [{ text: "Jugar con ellas por la foto (+2 Fama, -2 Bandeja)", action: () => { p.fame += 2; p.bandeja -= 2; } },
-                  { text: "Usar las viejas confiables (+1 Manejo)", action: () => { p.manejo += 1; } }]},
+              o: [{ text: "Jugar con ellas por la foto (+2 Fama, -5 Felicidad)", action: () => { p.fame += 2; p.felicidad -= 5; } },
+                  { text: "Usar las viejas confiables (+1 Química)", action: () => { p.chem += 1; } }]},
             { t: "🎙️ PODCAST VIRAL", d: "Te invitan a un podcast muy polémico de internet. Promete mucha audiencia.",
-              o: [{ text: "Ir y dar grandes titulares (+5 Fama, -5 Química)", action: () => { p.fame += 5; p.chem -= 5; } },
+              o: [{ text: "Ir y dar grandes titulares (+5 Viralidad, -5 Química)", action: () => { p.viralidad += 5; p.chem -= 5; } },
                   { text: "Rechazarlo educadamente (+2 Química)", action: () => { p.chem += 2; } }]},
             { t: "🏥 VISITA AL HOSPITAL", d: "El club organiza una visita sorpresa a la planta infantil del hospital de la ciudad.",
               o: [{ text: "Ir encantado y regalar camisetas (+5 Fama, +3 Química)", action: () => { p.fame += 5; p.chem = Math.min(100, p.chem+3); } }]},
             { t: "🎮 NOCHE DE CONSOLA", d: "Varios compañeros están jugando online hasta las 4 AM. Te invitan a la partida.",
-              o: [{ text: "Jugar hasta el amanecer (+5 Química, -3 Físico)", action: () => { p.chem = Math.min(100, p.chem+5); p.fisico -= 3; } },
-                  { text: "Irte a dormir (+3 Físico, -2 Química)", action: () => { p.fisico += 3; p.chem -= 2; } }]},
+              o: [{ text: "Jugar hasta el amanecer (+5 Química, -5 Felicidad)", action: () => { p.chem = Math.min(100, p.chem+5); p.felicidad -= 5; } },
+                  { text: "Irte a dormir (+5 Felicidad, -2 Química)", action: () => { p.felicidad += 5; p.chem -= 2; } }]},
             { t: "😡 FAN TÓXICO", d: "Un aficionado rival te insulta gravemente desde la primera fila mientras sacas de banda.",
-              o: [{ text: "Guiñarle el ojo y sonreír (+3 Fama)", action: () => { p.fame += 3; } },
-                  { text: "Encararte con él (-3 Fama, +1 Físico por rabia)", action: () => { p.fame -= 3; p.fisico += 1; } }]},
-            { t: "🏋️ SESIÓN EXTRA", d: "El gimnasio está vacío. Tienes la tarde libre, pero podrías mejorar tus debilidades.",
-              o: [{ text: "Machacarte haciendo pesas (+2 Físico, -1 Tiro)", action: () => { p.fisico += 2; p.tiro -= 1; } },
-                  { text: "Tirar 500 triples (+2 Tiro, -1 Físico)", action: () => { p.tiro += 2; p.fisico -= 1; } }]},
+              o: [{ text: "Guiñarle el ojo y sonreír (+3 Viralidad)", action: () => { p.viralidad += 3; } },
+                  { text: "Encararte con él (-3 Fama, +2 Viralidad por polémica)", action: () => { p.fame -= 3; p.viralidad += 2; } }]},
             { t: "💸 COMPAÑERO EN APUROS", d: "Un compañero novato ha gastado de más y te pide 500€ prestados hasta cobrar.",
               o: [{ text: "Prestarle el dinero (-500€, +8 Química)", action: () => { if(p.money >= 500) { p.money -= 500; p.chem = Math.min(100, p.chem+8); } else { p.chem -= 2; } } },
                   { text: "Decirle que debe ser responsable (-3 Química)", action: () => { p.chem -= 3; } }]},
             { t: "📺 DECLARACIONES DE LEYENDA", d: "Una vieja gloria del baloncesto critica a tu generación diciendo que sois blandos.",
               o: [{ text: "Darle la razón y ser humilde (+2 Química)", action: () => { p.chem += 2; } },
-                  { text: "Responderle y defender a los tuyos (+3 Fama, -2 Química)", action: () => { p.fame += 3; p.chem -= 2; } }]},
+                  { text: "Responderle y defender a los tuyos (+3 Viralidad, -2 Química)", action: () => { p.viralidad += 3; p.chem -= 2; } }]},
             { t: "🤑 MICRO-PATROCINIO", d: "Un restaurante local te ofrece comida gratis todo el mes a cambio de un post en redes.",
-              o: [{ text: "Aceptar (+1 Fama, +50€)", action: () => { p.fame += 1; p.money += 50; } },
+              o: [{ text: "Aceptar (+1 Viralidad, +50€)", action: () => { p.viralidad += 1; p.money += 50; } },
                   { text: "Ignorarlo, estás a otro nivel (+0)", action: () => {} }]},
-            { t: "🎯 APUESTA DE TIROS LIBRES", d: "Al final del entreno, el equipo apuesta 100€ a ver quién mete más tiros libres seguidos.",
-              o: [{ text: "Entrar a la apuesta (Ganas si tienes más de 75 de Tiro)", action: () => { 
-                  if(p.tiro > 75) { alert("¡Ganaste!"); p.money += 100; p.chem += 2; } 
-                  else { alert("Perdiste..."); p.money = Math.max(0, p.money - 100); p.chem += 2; } 
-              }}]},
             { t: "👕 ROBO EN EL VESTUARIO", d: "Vas a cambiarte y alguien te ha escondido la ropa de calle. ¡Es una broma del equipo!",
               o: [{ text: "Reírte de la broma (+5 Química)", action: () => { p.chem = Math.min(100, p.chem+5); } },
                   { text: "Enfadarte y buscar al culpable (-5 Química)", action: () => { p.chem -= 5; } }]},
             { t: "🔥 LIDERAZGO NECESARIO", d: "El equipo lleva una mala semana de entrenamientos. Falta energía.",
               o: [{ text: "Dar una charla motivacional (+5 Química Si Fama > 30)", action: () => { if(p.fame>30) p.chem+=5; else p.chem-=2; } },
-                  { text: "Predicar con el ejemplo (Callar y entrenar) (+2 Físico)", action: () => { p.fisico += 2; } }]},
+                  { text: "Predicar con el ejemplo (Callar y entrenar) (+5 Felicidad)", action: () => { p.felicidad += 5; } }]},
             { t: "🚗 PINCHAZO EN LA RUEDA", d: "Vas tarde al pabellón porque has pinchado una rueda.",
-              o: [{ text: "Correr los últimos 2km (-3 Físico, no llegas tarde)", action: () => { p.fisico -= 3; } },
+              o: [{ text: "Correr los últimos 2km (-5 Felicidad, no llegas tarde)", action: () => { p.felicidad -= 5; } },
                   { text: "Esperar a la grúa y llegar tarde (-5 Química)", action: () => { p.chem -= 5; } }]},
             { t: "🤳 CAZADO EN LA CALLE", d: "Un paparazzi te graba saliendo despeinado de una panadería.",
-              o: [{ text: "Reírte de ti mismo en redes (+3 Fama)", action: () => { p.fame += 3; } }]},
-            { t: "🛌 MALA NOCHE", d: "No has podido dormir por el ruido de los vecinos.",
-              o: [{ text: "Tomar mucho café (-2 Físico, +1 Manejo)", action: () => { p.fisico -= 2; p.manejo += 1; } },
-                  { text: "Ir a entrenar cansado (-2 Bandeja)", action: () => { p.bandeja -= 2; } }]},
+              o: [{ text: "Reírte de ti mismo en redes (+3 Viralidad)", action: () => { p.viralidad += 3; } }]},
             { t: "🧼 DUCHAS FRÍAS", d: "Se ha roto el calentador de agua del pabellón. El agua sale helada.",
-              o: [{ text: "Ducharte como un espartano (+2 Físico)", action: () => { p.fisico += 2; } },
+              o: [{ text: "Ducharte como un espartano (+2 Felicidad)", action: () => { p.felicidad += 2; } },
                   { text: "Irte sin ducharte (-2 Fama)", action: () => { p.fame -= 2; } }]},
             { t: "🎬 CAMEOS", d: "Te ofrecen salir 5 segundos en una serie de televisión famosa.",
-              o: [{ text: "Aceptar (+5 Fama, -2 Química por faltar al entreno)", action: () => { p.fame += 5; p.chem -= 2; } },
+              o: [{ text: "Aceptar (+5 Viralidad, -2 Química por faltar al entreno)", action: () => { p.viralidad += 5; p.chem -= 2; } },
                   { text: "Rechazar (+2 Química)", action: () => { p.chem += 2; } }]}
         ];
 
@@ -136,6 +125,65 @@ const StorySystem = {
         let eventFired = false;
 
         // ==========================================
+        // 🚨 NUEVO: EVENTOS DINÁMICOS DEL RIVAL 🚨
+        // Estos dependen de tu rendimiento actual, rachas, fama o trofeos.
+        // ==========================================
+
+        // 1. MALA RACHA DE DERROTAS
+        if (p.stats.lossStreak >= 3 && !p.rivalReconciled && !this.events.includes('dyn_rival_loss_streak')) {
+            this.trigger("📰 BURLA EN LA PRENSA (MALA RACHA)",
+            `Tu equipo lleva 3 derrotas seguidas. La prensa local le pregunta a ${p.rivalName} por tu bache y él responde riendo: "No me sorprende que pierdan, el chico nunca tuvo madera de líder."`,
+            [ { text: "Ignorarlo y centrarte en ganar (+5 Química)", action: () => { p.chem += 5; } },
+              { text: "Atacar a tus compañeros por no defender (-15 Química, +5 Viralidad)", action: () => { p.chem -= 15; p.viralidad += 5; } } ], 'dyn_rival_loss_streak');
+            return;
+        }
+
+        // 2. SELECCIÓN AL ALL-STAR
+        if (p.allStars > 0 && !p.rivalReconciled && !this.events.includes('dyn_rival_allstar')) {
+            this.trigger("⭐ LA ENVIDIA DEL ALL-STAR",
+            `¡Has sido elegido para el All-Star! ${p.rivalName} publica en sus redes: "El All-Star se ha convertido en un concurso de popularidad, ya no importa el talento real."`,
+            [ { text: "Retuitear con un emoji de payaso (+8 Viralidad, -5 Química)", action: () => { p.viralidad += 8; p.chem -= 5; } },
+              { text: "No responder y disfrutar de tu logro (+5 Felicidad, +2 Fama)", action: () => { p.felicidad = Math.min(100, p.felicidad + 5); p.fame += 2; } } ], 'dyn_rival_allstar');
+            return;
+        }
+
+        // 3. OFERTA DE TV CONJUNTA (Requiere alta fama)
+        if (p.fame >= 40 && p.season >= 2 && !p.rivalReconciled && !this.events.includes('dyn_rival_tv')) {
+            this.trigger("🎬 OFERTA DE TELEVISIÓN TÓXICA",
+            `Una marca deportiva internacional te ofrece 1.500€ por protagonizar un spot. Pero hay trampa: el guion exige que salgas bromeando y dándote un abrazo con ${p.rivalName}.`,
+            [ { text: "Aceptar, el dinero manda (+1500€, +10 Viralidad, -15 Felicidad)", action: () => { p.money += 1500; p.viralidad += 10; p.felicidad = Math.max(0, p.felicidad - 15); } },
+              { text: "Rechazar por principios (+5 Química, +10 Felicidad)", action: () => { p.chem += 5; p.felicidad = Math.min(100, p.felicidad + 10); } } ], 'dyn_rival_tv');
+            return;
+        }
+
+        // 4. GUERRA VIRAL (Si tu viralidad es alta)
+        if (p.viralidad >= 30 && !p.rivalReconciled && !this.events.includes('dyn_rival_viral')) {
+            this.trigger("📱 GUERRA DE INFLUENCERS",
+            `Tus redes sociales están explotando. ${p.rivalName} sube un vídeo imitándote de forma ridícula y burlándose de tus patrocinios. El vídeo se ha hecho súper viral.`,
+            [ { text: "Subir un vídeo enseñando tus trofeos (+10 Fama, -5 Química)", action: () => { p.fame += 10; p.chem -= 5; } },
+              { text: "Hacer un directo ignorándole (+5 Química, -2 Viralidad)", action: () => { p.chem += 5; p.viralidad = Math.max(0, p.viralidad - 2); } } ], 'dyn_rival_viral');
+            return;
+        }
+
+        // 5. GASTAR SUELDO / LUJO
+        if (p.money >= 50000 && !p.rivalReconciled && !this.events.includes('dyn_rival_dinero')) {
+            this.trigger("💸 EL PRECIO DE LA FAMA",
+            `${p.rivalName} aparece en un podcast presumiendo de su nuevo coche deportivo y lanza una pulla: "Algunos prefieren ahorrar porque saben que su carrera será corta".`,
+            [ { text: "Gastar 10.000€ en una cadena de diamantes para callarle (+15 Viralidad)", action: () => { p.money -= 10000; p.viralidad += 15; } },
+              { text: "Pasar del tema, tu cuenta bancaria habla sola (+5 Felicidad)", action: () => { p.felicidad = Math.min(100, p.felicidad + 5); } } ], 'dyn_rival_dinero');
+            return;
+        }
+
+        // 6. EL ANILLO DE CAMPEÓN
+        if (p.rings > 0 && !p.rivalReconciled && !this.events.includes('dyn_rival_ring')) {
+            this.trigger("💍 LA SOMBRA DEL CAMPEÓN",
+            `¡Tienes un anillo! Durante la rueda de prensa de celebración, un periodista te pregunta si te acuerdas de los que dudaron de ti desde el barrio, refiriéndose claramente a ${p.rivalName}.`,
+            [ { text: "'No pienso en los perdedores hoy' (+15 Viralidad, -10 Química)", action: () => { p.viralidad += 15; p.chem -= 10; } },
+              { text: "'El anillo es de todo mi equipo' (+20 Química, +5 Fama)", action: () => { p.chem = Math.min(100, p.chem + 20); p.fame += 5; } } ], 'dyn_rival_ring');
+            return;
+        }
+
+        // ==========================================
         // FASE 0: LIGA JUNIOR (Los orígenes)
         // ==========================================
         if (totalMatches >= 1 && p.fase === 0 && !this.events.includes('inicio')) {
@@ -147,31 +195,31 @@ const StorySystem = {
 
         if (totalMatches >= 2 && p.fase === 0 && !this.events.includes('zapatillas_rotas')) {
             this.trigger("ZAPATILLAS ROTAS", "En pleno contraataque, la suela de tu zapatilla izquierda se despega. No tienes dinero para unas nuevas.", 
-            [ {text: "Pegarlas con cinta (-2 Físico, +5 Quím)", action: () => { p.fisico -= 2; p.chem += 5; }},
-              {text: "Pedir prestadas al banquillo (+2 Físico, -5 Quím)", action: () => { p.fisico += 2; p.chem -= 5; }} ], 'zapatillas_rotas');
+            [ {text: "Pegarlas con cinta (-5 Felicidad, +5 Quím)", action: () => { p.felicidad -= 5; p.chem += 5; }},
+              {text: "Pedir prestadas al banquillo (+5 Felicidad, -5 Quím)", action: () => { p.felicidad += 5; p.chem -= 5; }} ], 'zapatillas_rotas');
             return;
         }
 
         if (totalMatches >= 5 && p.fase === 0 && !this.events.includes('rival_1')) {
             this.trigger(`⚔️ RIVALIDAD: EL GOLPE`, 
             `En un partido de entrenamiento, ${p.rivalName} te da un codazo muy duro al penetrar a canasta. Te caes al suelo y él te mira por encima del hombro riéndose. "Levanta, llorón".`, 
-            [ {text: "Devolvérsela en la siguiente jugada (+3 Físico, -10 Quím)", action: () => { p.fisico += 3; p.chem -= 10; }},
-              {text: "Callar y meterle un triple en su cara (+5 Tiro, +5 Fama)", action: () => { p.tiro += 5; p.fame += 5; }} ], 'rival_1');
+            [ {text: "Devolvérsela en la siguiente jugada (-10 Quím, +2 Viralidad)", action: () => { p.viralidad += 2; p.chem -= 10; }},
+              {text: "Callar y seguir jugando limpio (+5 Fama, +5 Felicidad)", action: () => { p.felicidad += 5; p.fame += 5; }} ], 'rival_1');
             return;
         }
 
         if (totalMatches >= 8 && p.fase === 0 && !this.events.includes('presion_padres')) {
             this.trigger("PRESIÓN EN CASA", `Tus padres te sientan a hablar. "El baloncesto está muy bien, pero tus notas están bajando. O apruebas, o te borramos del equipo".`, 
-            [ {text: "Pasar la noche estudiando (-3 Físico, +2 Tiro)", action: () => { p.fisico -= 3; p.tiro += 2; }},
-              {text: "Escaparte por la ventana a entrenar (+3 Físico, -5 Quím)", action: () => { p.fisico += 3; p.chem -= 5; }} ], 'presion_padres');
+            [ {text: "Pasar la noche estudiando (-5 Felicidad, +5 Química)", action: () => { p.felicidad -= 5; p.chem += 5; }},
+              {text: "Escaparte por la ventana a entrenar (+5 Viralidad, -5 Quím)", action: () => { p.viralidad += 5; p.chem -= 5; }} ], 'presion_padres');
             return;
         }
 
         if (totalMatches >= 11 && p.fase === 0 && !this.events.includes('rival_2')) {
             this.trigger(`⚔️ RIVALIDAD: LA PRENSA LOCAL`, 
             `Un periódico de la ciudad publica un artículo titulado: "${p.rivalName}, la verdadera joya de la corona". Te mencionan de pasada como su "escudero".`, 
-            [ {text: "Picarte y jugar a lo chupón en el próximo partido (-15 Quím, +5 Manejo)", action: () => { p.chem -= 15; p.manejo += 5; }},
-              {text: "Usarlo de motivación para defender mejor (+8 Defensa, -2 Fama)", action: () => { p.def += 8; p.fame -= 2; }} ], 'rival_2');
+            [ {text: "Picarte y jugar a lo chupón en el próximo partido (-15 Quím, +5 Viralidad)", action: () => { p.chem -= 15; p.viralidad += 5; }},
+              {text: "Usarlo de motivación silenciosa (+5 Felicidad, -2 Fama)", action: () => { p.felicidad += 5; p.fame -= 2; }} ], 'rival_2');
             return;
         }
 
@@ -180,8 +228,8 @@ const StorySystem = {
         // ==========================================
         if (p.fase === 1 && acbMatches >= 1 && !this.events.includes('debut_acb')) {
             this.trigger("BIENVENIDO A LA ÉLITE", "El salto a la liga profesional es brutal. El entrenador te dice: 'Aquí no eres ninguna estrella todavía. Defiende y pásala.'", 
-            [ {text: "Asentir y defender (+3 Def, +10 Quím)", action: () => { p.def += 3; p.chem += 10; }},
-              {text: "Ignorarle y tirar (-15 Quím, +3 Tiro)", action: () => { p.chem -= 15; p.tiro += 3; }} ], 'debut_acb');
+            [ {text: "Asentir y ser disciplinado (+5 Fama, +10 Quím)", action: () => { p.fame += 5; p.chem += 10; }},
+              {text: "Ignorarle y tirar (-15 Quím, +5 Viralidad)", action: () => { p.chem -= 15; p.viralidad += 5; }} ], 'debut_acb');
             return;
         }
 
@@ -189,22 +237,22 @@ const StorySystem = {
             this.trigger(`⚔️ RIVALIDAD: EL MENSAJE`, 
             `Te llega un WhatsApp de ${p.rivalName}: "He visto tu debut en la ACB por la tele. Vas a ritmo de tortuga. Tienes suerte de no jugar contra mí todavía".`, 
             [ {text: "Bloquear su número (+5 Química)", action: () => { p.chem += 5; }},
-              {text: "Responder: 'Míralo bien, porque estaré en lo más alto' (+5 Fama, -2 Química)", action: () => { p.fame += 5; p.chem -= 2; }} ], 'rival_3');
+              {text: "Responder: 'Míralo bien, estaré en lo más alto' (+5 Fama, -2 Química)", action: () => { p.fame += 5; p.chem -= 2; }} ], 'rival_3');
             return;
         }
 
         if (p.fase === 1 && acbMatches >= 10 && !this.events.includes('tavares')) {
-            this.trigger("⛰️ EL GIGANTE BLANCO", "Edy Tavares te dice: 'Tienes talento, chico, pero te comerán vivo si no endureces esa defensa'.",
-            [ { text: "Pedirle ayuda (+5 Def, +5 Quím)", action: () => { p.def += 5; p.chem += 5; } },
-              { text: "Decirle que eres mejor (-10 Fama, +5 Tiro)", action: () => { p.fame -= 10; p.tiro += 5; } } ], 'tavares');
+            this.trigger("⛰️ EL GIGANTE BLANCO", "Edy Tavares te dice: 'Tienes talento, chico, pero te comerán vivo si no juegas en equipo'.",
+            [ { text: "Pedirle ayuda (+5 Fama, +10 Quím)", action: () => { p.fame += 5; p.chem += 10; } },
+              { text: "Decirle que eres mejor (-10 Fama, +5 Viralidad)", action: () => { p.fame -= 10; p.viralidad += 5; } } ], 'tavares');
             return;
         }
 
         if (p.fase === 1 && acbMatches >= 18 && !this.events.includes('rival_4')) {
             this.trigger(`⚔️ RIVALIDAD: CARA A CARA`, 
             `Te toca enfrentarte directamente a ${p.rivalName}. En la línea de tiros libres se te acerca y te susurra: "No perteneces a esta liga. Estás temblando".`, 
-            [ {text: "Reírte en su cara y meter los tiros (+5 Bandeja, +5 Fama)", action: () => { p.bandeja += 5; p.fame += 5; }},
-              {text: "Dejar que te afecte y fallar (-5 Tiro, +10 Defensa por rabia)", action: () => { p.tiro -= 5; p.def += 10; }} ], 'rival_4');
+            [ {text: "Reírte en su cara y estar tranquilo (+5 Felicidad, +5 Fama)", action: () => { p.felicidad += 5; p.fame += 5; }},
+              {text: "Dejar que te afecte y enfadarte (-5 Felicidad, +5 Viralidad por pelea)", action: () => { p.felicidad -= 5; p.viralidad += 5; }} ], 'rival_4');
             return;
         }
 
@@ -218,8 +266,8 @@ const StorySystem = {
         if (p.fase === 1 && acbMatches >= 35 && !this.events.includes('rival_5')) {
             this.trigger(`⚔️ RIVALIDAD: LA TRAMPA`, 
             `${p.rivalName} te invita de forma inesperada a la zona VIP de una discoteca la noche antes de vuestro partido. "Venga, por los viejos tiempos, solo un rato".`, 
-            [ {text: "Ir a la fiesta (-10 Físico, -15 Química, +10 Fama)", action: () => { p.fisico -= 10; p.chem -= 15; p.fame += 10; }},
-              {text: "Quedarte en casa durmiendo (+10 Físico, +5 Química)", action: () => { p.fisico += 10; p.chem += 5; }} ], 'rival_5');
+            [ {text: "Ir a la fiesta (-15 Felicidad, -15 Química, +10 Fama)", action: () => { p.felicidad -= 15; p.chem -= 15; p.fame += 10; }},
+              {text: "Quedarte en casa durmiendo (+15 Felicidad, +5 Química)", action: () => { p.felicidad += 15; p.chem += 5; }} ], 'rival_5');
             return;
         }
 
@@ -228,8 +276,8 @@ const StorySystem = {
         // ==========================================
         if (p.fase === 2 && nbaMatches >= 1 && !this.events.includes('debut_nba')) {
             this.trigger("🇺🇸 THE AMERICAN DREAM", "Luces, cámaras, espectáculo. Estás en la NBA.", 
-            [ {text: "Ir a por todas (+5 Fama, +2 Tiro)", action: () => { p.fame += 5; p.tiro += 2; }},
-              {text: "Centrarte en el equipo (+5 Química, +2 Físico)", action: () => { p.chem += 5; p.fisico += 2; }} ], 'debut_nba');
+            [ {text: "Ir a por todas (+5 Fama, +2 Viralidad)", action: () => { p.fame += 5; p.viralidad += 2; }},
+              {text: "Centrarte en el equipo (+5 Química, +5 Felicidad)", action: () => { p.chem += 5; p.felicidad += 5; }} ], 'debut_nba');
             return;
         }
 
@@ -237,14 +285,14 @@ const StorySystem = {
             this.trigger(`⚔️ RIVALIDAD: EL MENOSPRECIO`, 
             `Ambos habéis llegado a la NBA. En una rueda de prensa de su equipo, le preguntan por ti a ${p.rivalName}. Él responde: "¿Quién? No me preocupo por jugadores de equipos mediocres".`, 
             [ {text: "Hacer un tweet incendiario respondiéndole (+15 Fama, -10 Química)", action: () => { p.fame += 15; p.chem -= 10; }},
-              {text: "Responder en la cancha con un partido histórico (+8 Tiro, +8 Físico)", action: () => { p.tiro += 8; p.fisico += 8; }} ], 'rival_6');
+              {text: "Responder ignorándolo (+5 Felicidad, +5 Química)", action: () => { p.felicidad += 5; p.chem += 5; }} ], 'rival_6');
             return;
         }
 
         if (p.fase === 2 && nbaMatches >= 30 && !this.events.includes('marca_zapatillas')) {
             this.trigger("👟 LA FIRMA DE TUS SUEÑOS", "Una gran marca deportiva te ofrece tus propias zapatillas (Signature Shoes).",
-            [ { text: "Firmar el contrato (Zapatillas PRO, -5 Fis, +10 Fama)", action: () => { p.hasShoe = true; p.fisico -= 5; p.fame += 10; } },
-              { text: "Rechazar para entrenar (+5 Fis, +10 Quím)", action: () => { p.fisico += 5; p.chem += 10; } } ], 'marca_zapatillas');
+            [ { text: "Firmar el contrato (+20 Viralidad, +10 Fama)", action: () => { p.viralidad += 20; p.fame += 10; } },
+              { text: "Rechazar por otra marca underground (+5 Viralidad, +10 Quím)", action: () => { p.viralidad += 5; p.chem += 10; } } ], 'marca_zapatillas');
             return;
         }
 
@@ -252,14 +300,14 @@ const StorySystem = {
             this.trigger(`⚔️ RIVALIDAD: EL BOICOT`, 
             `Empiezan las votaciones para el All-Star. ${p.rivalName} hace una campaña enorme en sus redes sociales pidiendo explícitamente a sus fans que NO te voten a ti para que él pueda ser titular.`, 
             [ {text: "Criticar su inmadurez en directo (+10 Fama, +5 Química)", action: () => { p.fame += 10; p.chem += 5; }},
-              {text: "Pedir a tus fans que lo saboteen a él (+20 Fama, -20 Química)", action: () => { p.fame += 20; p.chem -= 20; }} ], 'rival_7');
+              {text: "Pedir a tus fans que lo saboteen a él (+20 Viralidad, -20 Química)", action: () => { p.viralidad += 20; p.chem -= 20; }} ], 'rival_7');
             return;
         }
 
         if (p.fase === 2 && nbaMatches >= 60 && !this.events.includes('lebron_respect')) {
             this.trigger("👑 EL REY TE OBSERVA", "LeBron James asiente con la cabeza desde la grada en señal de respeto tras tu gran jugada.",
             [ { text: "Señalarle desafiante (+15 Fama, -15 Quím)", action: () => { p.fame += 15; p.chem -= 15; } },
-              { text: "Agachar la cabeza y defender (+5 Def, +10 Quím)", action: () => { p.def += 5; p.chem += 10; } } ], 'lebron_respect');
+              { text: "Agachar la cabeza y jugar en equipo (+5 Felicidad, +10 Quím)", action: () => { p.felicidad += 5; p.chem += 10; } } ], 'lebron_respect');
             return;
         }
 
@@ -267,7 +315,7 @@ const StorySystem = {
             this.trigger(`⚔️ RIVALIDAD: LAS CHISPAS VUELAN`, 
             `¡Tensión máxima! En una lucha por el rebote, ${p.rivalName} y tú acabáis empujándoos brutalmente. Los árbitros os pitan doble técnica. Sus compañeros van a defenderle, ¿y los tuyos?`, 
             [ {text: "Calmarte y pedir disculpas al equipo (+20 Química, -5 Fama)", action: () => { p.chem += 20; p.fame -= 5; }},
-              {text: "Buscar la pelea física (+15 Físico, -30 Química, Sanción económica)", action: () => { p.fisico += 15; p.chem -= 30; p.money = Math.max(0, p.money - 5000); }} ], 'rival_8');
+              {text: "Buscar la pelea física (+15 Viralidad, -30 Química, Multa)", action: () => { p.viralidad += 15; p.chem -= 30; p.money = Math.max(0, p.money - 5000); }} ], 'rival_8');
             return;
         }
 
@@ -281,23 +329,23 @@ const StorySystem = {
         if (p.fase === 2 && nbaMatches >= 100 && !this.events.includes('rival_9')) {
             this.trigger(`⚔️ RIVALIDAD: LA CAÍDA`, 
             `${p.rivalName} ha sufrido una fea lesión de rodilla y estará fuera varias semanas. Todo el mundo del baloncesto manda mensajes de apoyo. ¿Qué haces tú?`, 
-            [ {text: "Mandarle un mensaje privado sincero de apoyo (+15 Química, Inicia Deshielo)", action: () => { p.chem += 15; }},
+            [ {text: "Mandarle un mensaje sincero de apoyo (+15 Química, Inicia Deshielo)", action: () => { p.chem += 15; }},
               {text: "No decir nada. Es el karma (+10 Fama, -10 Química)", action: () => { p.fame += 10; p.chem -= 10; }} ], 'rival_9');
             return;
         }
 
         if (p.fase === 2 && nbaMatches >= 110 && !this.events.includes('agente_nuevo')) {
             this.trigger("👔 EL AGENTE TIBURÓN", "Un superagente de Hollywood te promete el oro y el moro.",
-            [ { text: "Contratarlo (+20 Fama, -25 Quím)", action: () => { p.fame += 20; p.chem -= 25; } },
+            [ { text: "Contratarlo (+20 Viralidad, -25 Quím)", action: () => { p.viralidad += 20; p.chem -= 25; } },
               { text: "Quedarte con el de siempre (+10 Quím)", action: () => { p.chem += 10; } } ], 'agente_nuevo');
             return;
         }
 
         if (p.fase === 2 && nbaMatches >= 125 && !this.events.includes('rival_10')) {
-            this.trigger(`⚔️ RIVALIDAD: BATALLA POR EL MVP`, 
-            `La carrera por el MVP está entre tú y ${p.rivalName}. En un programa nacional de TV, él declara: "Si los periodistas saben de baloncesto de verdad, me lo darán a mí. Lo suyo es pura fachada."`, 
-            [ {text: "Ignorar el ruido y jugar tu mejor basket (+10 a todos los Stats, -5 Fama)", action: () => { p.tiro+=10; p.fisico+=10; p.manejo+=10; p.def+=10; p.bandeja+=10; p.fame-=5; }},
-              {text: "Soltar una bomba mediática contra él (+30 Fama, -20 Química)", action: () => { p.fame += 30; p.chem -= 20; }} ], 'rival_10');
+            this.trigger(`⚔️ RIVALIDAD: BATALLA MEDIÁTICA`, 
+            `En un programa nacional de TV, ${p.rivalName} declara: "Los periodistas aman a este chico por la prensa que mueve, no por su talento real."`, 
+            [ {text: "Ignorar el ruido (+5 Felicidad, +5 Química)", action: () => { p.felicidad += 5; p.chem += 5; }},
+              {text: "Soltar una bomba mediática contra él (+30 Viralidad, -20 Química)", action: () => { p.viralidad += 30; p.chem -= 20; }} ], 'rival_10');
             return;
         }
 
@@ -305,16 +353,9 @@ const StorySystem = {
             this.trigger("🤝 EL PASADO LLAMA", 
             `Han pasado años desde aquella promesa en la pista del barrio. Recibes una llamada de ${p.rivalName}. "Hemos peleado mucho, pero quiero felicitarte por lo que estás logrando. ¿Hacemos las paces?"`,
             [
-                { text: "Aceptar sus disculpas (+Cumple Misión GOAT, +20 Química)", action: () => { p.rivalReconciled = true; p.chem += 20; } },
+                { text: "Aceptar sus disculpas (+20 Química, Historia Cerrada)", action: () => { p.rivalReconciled = true; p.chem += 20; } },
                 { text: "Colgarle el teléfono. La guerra sigue (+10 Fama, -20 Química)", action: () => { p.fame += 10; p.chem -= 20; } }
             ], 'reconciliacion_rival');
-            return;
-        }
-
-        if (p.fase === 2 && p.season >= 14 && !this.events.includes('cuerpo_cansado')) {
-            this.trigger("🦴 EL PESO DEL TIEMPO", "Te duelen las rodillas. Tu cuerpo ya no es el de un chaval de 20 años.",
-            [ { text: "Gastar en Crioterapia de choque (-10.000€)", action: () => { if(p.money>=10000) p.money-=10000; else p.fisico-=10; } },
-              { text: "Jugar más inteligente (-10 Fis, +10 Tiro, +10 Man)", action: () => { p.fisico -= 10; p.tiro += 10; p.manejo += 10; } } ], 'cuerpo_cansado');
             return;
         }
 
@@ -324,16 +365,16 @@ const StorySystem = {
         if (p.season === 5 && !this.events.includes('cambio_generacional')) {
             this.trigger("👑 EL CAMBIO DE ERA", 
             "Las viejas leyendas de la liga están anunciando sus retiros. Los periodistas afirman que el baloncesto necesita una nueva cara visible para la próxima década. Todas las miradas se centran en la nueva generación de estrellas.", 
-            [ { text: "Asumir la presión mediática (+10 Fama, -5 Química)", action: () => { p.fame += 10; p.chem -= 5; } },
-              { text: "Trabajar en silencio (+5 Físico, +5 Tiro)", action: () => { p.fisico += 5; p.tiro += 5; } } ], 'cambio_generacional');
+            [ { text: "Asumir la presión mediática (+10 Viralidad, -5 Química)", action: () => { p.viralidad += 10; p.chem -= 5; } },
+              { text: "Trabajar en silencio (+5 Felicidad, +5 Química)", action: () => { p.felicidad += 5; p.chem += 5; } } ], 'cambio_generacional');
             eventFired = true;
         }
 
         if (p.season === 10 && !this.events.includes('nueva_regla')) {
             this.trigger("⚖️ CAMBIO DE REGLAS EN LA LIGA", 
             "El comité de competición acaba de endurecer las faltas defensivas. A partir de ahora, jugar agresivo será más arriesgado, favoreciendo a los atacantes habilidosos.", 
-            [ { text: "Adaptar tu defensa (-5 Defensa, +10 Fama)", action: () => { p.def -= 5; p.fame += 10; } },
-              { text: "Protestar la norma (+5 Defensa, Sanción Económica)", action: () => { p.def += 5; p.money = Math.max(0, p.money - 3000); } } ], 'nueva_regla');
+            [ { text: "Adaptar tu juego (+10 Fama, +5 Felicidad)", action: () => { p.fame += 10; p.felicidad += 5; } },
+              { text: "Protestar la norma (+5 Viralidad, Sanción Económica)", action: () => { p.viralidad += 5; p.money = Math.max(0, p.money - 3000); } } ], 'nueva_regla');
             eventFired = true;
         }
 
@@ -341,11 +382,11 @@ const StorySystem = {
             this.trigger("🔥 EL PASO DE LA ANTORCHA", 
             "Un novato prodigio ha llegado a la liga. Te busca al terminar el partido y te pide consejo. Te recuerda muchísimo a ti mismo cuando empezaste.", 
             [ { text: "Tomarlo bajo tu tutela (+20 Química, +10 Fama)", action: () => { p.chem += 20; p.fame += 10; } },
-              { text: "Darle una lección de realidad en la pista (+10 Tiro, -15 Química)", action: () => { p.tiro += 10; p.chem -= 15; } } ], 'paso_antorcha');
+              { text: "Darle una lección de realidad en la pista (+10 Viralidad, -15 Química)", action: () => { p.viralidad += 10; p.chem -= 15; } } ], 'paso_antorcha');
             eventFired = true;
         }
 
-                // Lanzar eventos aleatorios solo si NO ha saltado ningún evento de historia principal en este turno (15% probabilidad)
+        // Lanzar eventos aleatorios solo si NO ha saltado ningún evento principal (15% probabilidad)
         if (!eventFired && Math.random() > 0.85) {
             this.lanzarEventoAleatorio();
         }
