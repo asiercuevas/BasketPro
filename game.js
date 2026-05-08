@@ -2451,7 +2451,7 @@ function draft() {
     
     let targetFase = p.fase;
     if (p.fase === 0) targetFase = 1; 
-    if (p.fase === 1 && p.fame >= 40 && p.ovr >= 80) targetFase = 2; 
+    if (p.fase === 1 && p.fame >= 30 && p.ovr >= 76) targetFase = 2; 
 
     html += `</div>`;
     
@@ -3014,25 +3014,21 @@ function mostrarDraftACB() {
 function mostrarDraftNBA() {
     let pick, tier;
     
-    if (p.ovr >= 80 || p.fame >= 58) { 
+    if (p.ovr >= 78 || p.fame >= 55) { 
         pick = Math.floor(1 + Math.random() * 4);  
         tier = "🥇 Pick de Lotería TOP 5";    
     }
-    else if (p.ovr >= 78 || p.fame >= 50) { 
+    else if (p.ovr >= 77 || p.fame >= 45) { 
         pick = Math.floor(5 + Math.random() * 9);  
         tier = "⭐ Lotería (Top 14)";          
     }
-    else if (p.ovr >= 76 || p.fame >= 42) { 
+    else if (p.ovr >= 76 || p.fame >= 35) { 
         pick = Math.floor(14 + Math.random() * 16); 
         tier = "📋 Primera Ronda";             
     }
-    else if (p.ovr >= 76) { 
+    else { 
         pick = Math.floor(30 + Math.random() * 30); 
         tier = "📄 Segunda Ronda";             
-    }
-    else { 
-        pick = 0; 
-        tier = "🤝 Agente Libre";          
     }
 
     let nbaTeams = [...DB[2].teams];
