@@ -3014,19 +3014,19 @@ function mostrarDraftACB() {
 function mostrarDraftNBA() {
     let pick, tier;
     
-    if (p.ovr >= 92 || p.fame >= 58) { 
+    if (p.ovr >= 80 || p.fame >= 58) { 
         pick = Math.floor(1 + Math.random() * 4);  
         tier = "🥇 Pick de Lotería TOP 5";    
     }
-    else if (p.ovr >= 87 || p.fame >= 50) { 
+    else if (p.ovr >= 78 || p.fame >= 50) { 
         pick = Math.floor(5 + Math.random() * 9);  
         tier = "⭐ Lotería (Top 14)";          
     }
-    else if (p.ovr >= 83 || p.fame >= 42) { 
+    else if (p.ovr >= 76 || p.fame >= 42) { 
         pick = Math.floor(14 + Math.random() * 16); 
         tier = "📋 Primera Ronda";             
     }
-    else if (p.ovr >= 80) { 
+    else if (p.ovr >= 76) { 
         pick = Math.floor(30 + Math.random() * 30); 
         tier = "📄 Segunda Ronda";             
     }
