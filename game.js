@@ -369,14 +369,102 @@ function getAnimBonus(tipoAccion) {
 // =====================================================================
 // SISTEMA DE MERCADO Y RECALCULO DE OVR
 // =====================================================================
+
+// Reordena el roster por OVR (los mejores primero = titulares)
+// y asigna el campo 'rol' a cada jugador según su posición
+function reordenarRoster(roster) {
+    if (!roster || roster.length === 0) return roster;
+    // Separar al jugador del usuario si está en este roster
+    roster.sort((a, b) => b.o - a.o);
+    roster.forEach((jug, idx) => {
+        if (idx === 0) jug.rol = "Estrella";
+        else if (idx < 5) jug.rol = "Titular";
+        else if (idx === 5 || jug.p === "6M") jug.rol = "6M";
+        else jug.rol = "Suplente";
+    });
+    return roster;
+}
+
+// Devuelve los minutos estimados de un jugador según su peso OVR en el equipo
+// Total de minutos en un partido NBA = 5 jugadores x 48 min = 240 min
+function calcMinutos(jug, roster) {
+    // Reparto realista de minutos con variación partido a partido.
+    // El roster DEBE estar ya ordenado por OVR desc (reordenarRoster lo garantiza).
+    // Minutos base por posición en roster (índice 0 = estrella):
+    //   idx 0        → Estrella:   34-38 min
+    //   idx 1-4      → Titular:    28-34 min (baja ~1.5 min por idx extra)
+    //   idx 5        → 6M:         22-28 min
+    //   idx 6-8      → Suplente:   8-18 min  (baja ~3 min por idx extra)
+    //   idx 9+       → Fondo banco: 0-5 min
+    // Total se normaliza a exactamente 240 min.
+    if (!roster || roster.length === 0) return 0;
+
+    const rand = (min, max) => min + Math.random() * (max - min);
+
+    function baseMin(idx, jug) {
+        if (idx === 0)       return rand(34, 38);
+        if (idx <= 4)        return rand(28 - (idx - 1) * 1.5, 34 - (idx - 1) * 1.5);
+        if (idx === 5 || jug.p === "6M") return rand(22, 28);
+        if (idx <= 8)        return rand(8  - (idx - 6) * 2.5, 18 - (idx - 6) * 2.5);
+        return rand(0, 4);
+    }
+
+    // Generar minutos brutos para todo el roster
+    let brutos = roster.map((j, i) => Math.max(0, baseMin(i, j)));
+    let totalBruto = brutos.reduce((a, b) => a + b, 0);
+
+    // Normalizar a 240 min exactos
+    let normalizados = brutos.map(m => (m / totalBruto) * 240);
+
+    // Redondear y ajustar último para que sume 240 exacto
+    let redondeados = normalizados.map(m => Math.round(m));
+    let diff = 240 - redondeados.reduce((a, b) => a + b, 0);
+    // Distribuir la diferencia en los titulares (los primeros)
+    for (let i = 0; diff !== 0; i = (i + 1) % Math.min(5, roster.length)) {
+        redondeados[i] += diff > 0 ? 1 : -1;
+        diff += diff > 0 ? -1 : 1;
+    }
+
+    let idx = roster.findIndex(j => j.n === jug.n);
+    if (idx === -1) return 0;
+    return Math.max(0, redondeados[idx]);
+}
+
+// Versión determinista (para mostrar en plantilla sin fluctuar cada render)
+// Usa la media de base en lugar de aleatoriedad
+function calcMinutosMedio(jug, roster) {
+    if (!roster || roster.length === 0) return 0;
+
+    function baseMin(idx, jug) {
+        if (idx === 0)       return 36;
+        if (idx <= 4)        return 31 - (idx - 1) * 1.5;
+        if (idx === 5 || jug.p === "6M") return 25;
+        if (idx <= 8)        return 13 - (idx - 6) * 2.5;
+        return 2;
+    }
+
+    let brutos = roster.map((j, i) => Math.max(0, baseMin(i, j)));
+    let totalBruto = brutos.reduce((a, b) => a + b, 0);
+    let normalizados = brutos.map(m => Math.round((m / totalBruto) * 240));
+    let diff = 240 - normalizados.reduce((a, b) => a + b, 0);
+    for (let i = 0; diff !== 0; i = (i + 1) % Math.min(5, roster.length)) {
+        normalizados[i] += diff > 0 ? 1 : -1;
+        diff += diff > 0 ? -1 : 1;
+    }
+
+    let idx = roster.findIndex(j => j.n === jug.n);
+    if (idx === -1) return 0;
+    return Math.max(0, normalizados[idx]);
+}
+
 function recalcularMediasEquipos() {
     leagueTable.forEach(t => {
         if (t.roster && t.roster.length > 0) {
-            let sortedRoster = [...t.roster].sort((a, b) => b.o - a.o);
-            let top5 = sortedRoster.slice(0, 5);
+            // Reordenar roster: los mejores arriba (= titulares en distributeStats)
+            t.roster = reordenarRoster(t.roster);
+            let top5 = t.roster.slice(0, 5);
             let sumOvr = top5.reduce((acc, jug) => acc + jug.o, 0);
             t.ovr = Math.round(sumOvr / top5.length);
-            
             t.star = top5[0].n;
             t.starOvr = top5[0].o;
         }
@@ -521,6 +609,7 @@ function intentarFichaje() {
                 let mejorOvr = titulares.length > 0 ? titulares[0].o : 70;
                 let rolNuevo = targetOvr >= mejorOvr + 3 ? "Estrella" : (targetOvr >= mejorOvr - 4 ? "Titular" : "Suplente");
 
+                jugadorObj.rol = rolNuevo;
                 escribirDialogo(`🚨 ¡BOMBAZO! <b style="color:var(--success);">${targetName}</b> (OVR ${targetOvr}) ficha como <b>${rolNuevo}</b> por ${p.team}. Intentos restantes: ${p.mercadoIntentos}.`);
             }
         }
@@ -529,6 +618,7 @@ function intentarFichaje() {
     }
     
     recalcularMediasEquipos();
+    updateUI(); // refrescar media del equipo en header
     renderMercado();
 }
 
@@ -669,6 +759,18 @@ function cargarPartida() {
             if (p.ofertaPendiente === undefined) p.ofertaPendiente = "";
 
             leagueTable = data.liga;
+            // MIGRACIÓN: rellenar campo 'a' (edad) desde DB si falta en partida guardada
+            leagueTable.forEach(lt => {
+                if (!lt.roster) return;
+                const dbTeam = (DB[p.fase] && DB[p.fase].teams) ? DB[p.fase].teams.find(t => t.name === lt.name) : null;
+                lt.roster.forEach(jug => {
+                    if (jug.a !== undefined) return;
+                    if (dbTeam && dbTeam.roster) {
+                        const dbJug = dbTeam.roster.find(dj => dj.n === jug.n);
+                        if (dbJug && dbJug.a !== undefined) jug.a = dbJug.a;
+                    }
+                });
+            });
             p.teamData = leagueTable.find(t => t.name === p.team);
             p.ovr = calcOvr();
             
@@ -1721,10 +1823,16 @@ function res(tipo, id) {
 
 function distributeStats(roster, totalPts) {
     if(!roster || roster.length === 0) return;
+
+    // Generar minutos reales con variación para este partido
+    // Ordenar por OVR desc para que idx 0 = estrella siempre
+    let rosterMin = [...roster].sort((a, b) => b.o - a.o);
+    let minutosPartido = roster.map(jug => calcMinutos(jug, rosterMin));
     
     roster.forEach((jug, idx) => {
-        let isBench = (idx >= 5 || jug.p === "6M" || jug.p === "BAN");
-        let mult = isBench ? 0.5 : 1.0;
+        // Escalar por minutos: referencia = 36 min (estrella titular)
+        let min = minutosPartido[idx];
+        let mult = min / 36;
 
         let pts, ast, reb, rob, tap;
         
@@ -2480,7 +2588,9 @@ function draft() {
         equiposRenova.forEach(eq => {
             let rol = p.ovr >= eq.ovr + 3 ? "Estrella" : (p.ovr >= eq.ovr - 4 ? "Titular" : "Suplente");
             let sueldo = rol === "Estrella" ? 450 : rol === "Titular" ? 250 : 200;
-            renovHtml += `<button onclick="ejecutarAscenso(${p.fase}, '${eq.name}', '${rol}')" class="btn-main" style="text-transform:none; font-size:0.72em; margin-bottom:4px;">${eq.name} | ${rol} | ${sueldo}€/p</button>`;
+            let estrellas = eq.roster ? eq.roster.slice(0, 2).map(j => j.a ? j.n + ' (' + j.a + ')' : j.n).join(', ') : '';
+            let extraInfo = estrellas ? '<br><span style=\'color:#888; font-size:0.85em;\'>Con: ' + estrellas + '</span>' : '';
+            renovHtml += '<button onclick="ejecutarAscenso(' + p.fase + ', \'' + eq.name + '\', \'' + rol + '\')" class="btn-main" style="text-transform:none; font-size:0.72em; margin-bottom:4px;">' + eq.name + ' | ' + rol + ' | ' + sueldo + '€/p' + extraInfo + '</button>';
         });
         
         renovHtml += `<button onclick="ejecutarAscenso(${p.fase}, '${p.team}', '${p.role}')" class="btn-main" style="border-color:#555; color:#888; font-size:0.7em; margin-top:4px; text-transform:none;">🔄 Renovar con ${p.team}</button>`;
@@ -2519,6 +2629,70 @@ function rechazarDraft() {
     if(gl) gl.innerHTML = '';
     escribirDialogo(`Has decidido no presentarte al Draft este año y continuar tu desarrollo un año más en <b>${p.team}</b>.`);
     ejecutarAscenso(p.fase, p.team, p.role);
+}
+
+
+// Progresión realista de jugadores IA al fin de temporada.
+// - Jóvenes (<26): suben si jugaron muchos minutos (titulares)
+// - Pico (26-29): estables, pequeñas variaciones
+// - Veteranos (30-33): ligero declive
+// - Mayores (34+): declive notable
+// Todos los cambios se basan en minutos jugados (rol en roster) + algo de azar.
+function progresarJugadoresLiga() {
+    leagueTable.forEach(t => {
+        if (!t.roster) return;
+        let rosterOrdenado = [...t.roster].sort((a, b) => b.o - a.o);
+        
+        t.roster.forEach(jug => {
+            if (!jug.o || jug.n === p.name) return; // no tocamos al jugador
+            
+            let edad = jug.a || 26; // si no tiene edad, asumimos 26
+            let idx = rosterOrdenado.findIndex(j => j.n === jug.n);
+            let esTitular = idx >= 0 && idx < 5;
+            let esSuplente = idx >= 5;
+            
+            let delta = 0;
+            
+            if (edad <= 22) {
+                // Muy joven: progresa rápido si juega
+                delta = esTitular ? (Math.random() * 3 + 1) : (Math.random() * 1.5);
+            } else if (edad <= 25) {
+                // Joven: progresa si juega, poco si no
+                delta = esTitular ? (Math.random() * 2 + 0.5) : (Math.random() * 0.5 - 0.2);
+            } else if (edad <= 28) {
+                // Pico: muy estable, variación mínima
+                delta = (Math.random() * 1.5) - 0.75;
+            } else if (edad <= 31) {
+                // Post-pico: ligero declive
+                delta = (Math.random() * 1.5) - 1.2;
+            } else if (edad <= 34) {
+                // Veterano: declive moderado
+                delta = (Math.random() * 1.5) - 1.8;
+            } else {
+                // Mayor: declive notable
+                delta = (Math.random() * 2) - 2.5;
+            }
+            
+            // Ajustar OVR (máximo ±3 por temporada, mínimo 60)
+            let maxOvr = DB[p.fase] ? DB[p.fase].maxOvr : 99;
+            jug.o = Math.round(Math.min(maxOvr, Math.max(60, jug.o + delta)));
+            
+            // Envejecer al jugador
+            if (jug.a !== undefined) jug.a += 1;
+        });
+        
+        // Recalcular OVR del equipo tras la progresión
+        let top5 = [...t.roster].sort((a, b) => b.o - a.o).slice(0, 5);
+        t.ovr = Math.round(top5.reduce((acc, j) => acc + j.o, 0) / top5.length);
+    });
+    
+    // También actualizar OVR en DB (para que los drafts futuros sean correctos)
+    if (DB[p.fase]) {
+        DB[p.fase].teams.forEach(dbT => {
+            let lt = leagueTable.find(t => t.name === dbT.name);
+            if (lt) dbT.ovr = lt.ovr;
+        });
+    }
 }
 
 function ejecutarAscenso(faseTarget, teamName, rolTarget) {
@@ -2562,6 +2736,8 @@ function ejecutarAscenso(faseTarget, teamName, rolTarget) {
     
     if (oldFase !== faseTarget) p.rivalTeam = ""; 
     
+    // Progresar/envejecer jugadores de la liga antes de preparar la nueva temporada
+    progresarJugadoresLiga();
     prepararLiga(); 
     updateUI(); 
     let gl = document.getElementById('game-log');
@@ -2665,9 +2841,16 @@ function mostrarEquipoInfo() {
         let rpp = matchesPlayed === 0 ? "0.0" : (p.stats.reb/m).toFixed(1);
         let app = matchesPlayed === 0 ? "0.0" : (p.stats.ast/m).toFixed(1);
         
+        let myTeamRoster = equipoLiga ? equipoLiga.roster : [];
+        let myFakeJug = { n: p.name, o: p.ovr };
+        let myRosterRaw = myTeamRoster.some(j => j.n === p.name) ? myTeamRoster : [myFakeJug, ...myTeamRoster];
+        let myRosterWithMe = [...myRosterRaw].sort((a, b) => b.o - a.o);
+        let myMin = calcMinutosMedio(myFakeJug, myRosterWithMe);
+        let myRolColor = p.role === "Estrella" ? "gold" : p.role === "Titular" ? "var(--accent)" : "#a0c4ff";
         html += `
         <div style="background: rgba(255,102,0,0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 10px; text-align: center; box-shadow: 0 4px 10px rgba(255,102,0,0.2);">
-            <div style="font-size: 0.8em; color: var(--accent); font-weight: bold; margin-bottom: 4px;">${p.pos.toUpperCase()}</div>
+            <div style="font-size: 0.8em; color: var(--accent); font-weight: bold; margin-bottom: 2px;">${p.pos.toUpperCase()}</div>
+            <div style="font-size: 0.6em; color: ${myRolColor}; margin-bottom: 3px; font-weight:bold;">${p.role.toUpperCase()} · ${myMin}min</div>
             <div style="color: var(--accent); font-weight: bold; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size:0.85em;">🌟 ${p.name} (TÚ)</div>
             <div style="font-size: 0.7em; background: rgba(0,0,0,0.5); padding: 4px; border-radius: 4px; margin-bottom: 5px;">OVR: <span style="color:#fff; font-weight:bold;">${p.ovr}</span></div>
             <div style="font-size: 0.65em; color: #ccc;">${ppp}p | ${rpp}r | ${app}a</div>
@@ -2675,27 +2858,64 @@ function mostrarEquipoInfo() {
     }
     
     if(equipoLiga && equipoLiga.roster) {
-        equipoLiga.roster.forEach(jug => {
-            if(tName === p.team && jug.n === p.name) return;
-            
+        // Roster ordenado por OVR desc para calcular minutos y asignar roles
+        let rosterOrdenado = [...equipoLiga.roster].sort((a, b) => b.o - a.o);
+
+        // ─── TITULARES: exactamente 5 ─────────────────────────────────────
+        // Si el usuario es Titular/Estrella en su propio equipo,
+        // su hueco ya está cubierto por su card especial → los otros 4 primeros son titulares.
+        // En cualquier otro caso (suplente en mi equipo, o equipo rival)
+        // los primeros 5 por OVR son los titulares.
+        let esMiEquipo = (tName === p.team);
+        let usuarioEsTitular = esMiEquipo && (p.role === "Titular" || p.role === "Estrella");
+
+        // Índices de los jugadores IA que cuentan como titulares
+        // (excluyendo al usuario si es titular, porque su card ya ocupa un hueco)
+        let rosterSinUsuario = rosterOrdenado.filter(jug => !(esMiEquipo && jug.n === p.name));
+        let numTitularesIA = usuarioEsTitular ? 4 : 5; // usuario ocupa 1 hueco si es titular
+        let setTitulares = new Set(rosterSinUsuario.slice(0, numTitularesIA).map(j => j.n));
+
+        // Mostrar TODA la plantilla (excepto la card del usuario que va aparte)
+        rosterSinUsuario.forEach(jug => {
             let isRival = (jug.n === p.rivalName);
+            let esTitularIA = setTitulares.has(jug.n);
+
             let bgColor = isRival ? "rgba(255,215,0,0.05)" : "rgba(255,255,255,0.03)";
-            let borderColor = isRival ? "gold" : "rgba(255,255,255,0.1)";
+            let borderColor = isRival ? "gold" : (esTitularIA ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)");
             let nameColor = isRival ? "gold" : "#f4f4f7";
             let posReal = getPosReal(jug);
             let posStr = posMap[posReal] || posReal || "S";
             if(posStr.length > 5) posStr = posReal;
-            
+
+            // Minutos proporcionales al peso OVR en el roster completo
+            let jugMin = calcMinutosMedio(jug, rosterOrdenado);
+
+            // Stats por partido: acumulados con mult = min/36 en distributeStats
             let jugPPP = (jug.pts / mAI).toFixed(1);
             let jugRPP = (jug.reb / mAI).toFixed(1);
             let jugAPP = (jug.ast / mAI).toFixed(1);
             let jugROP = (jug.rob / mAI).toFixed(1);
             let jugTAP = (jug.tap / mAI).toFixed(1);
 
+            // Rol: Estrella (1º), Titular (2º-5º exactos), 6M, Suplente
+            let posEnRoster = rosterOrdenado.findIndex(j => j.n === jug.n);
+            let rolLabel, rolColor;
+            if (posEnRoster === 0 && !usuarioEsTitular) {
+                rolLabel = "Estrella"; rolColor = "gold";
+            } else if (esTitularIA) {
+                rolLabel = "Titular"; rolColor = "var(--accent)";
+            } else if (posEnRoster === numTitularesIA || jug.p === "6M") {
+                rolLabel = "6M"; rolColor = "#a0c4ff";
+            } else {
+                rolLabel = "Suplente"; rolColor = "#888";
+            }
+
             html += `
-            <div style="background: ${bgColor}; border: 1px solid ${borderColor}; border-radius: 8px; padding: 10px; text-align: center;">
-                <div style="font-size: 0.8em; color: var(--accent); font-weight: bold; margin-bottom: 4px;">${posStr}</div>
-                <div style="color: ${nameColor}; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size:0.85em;">${isRival ? '🔥 ' : ''}${jug.n}</div>
+            <div style="background: ${bgColor}; border: 1px solid ${borderColor}; border-radius: 8px; padding: 10px; text-align: center; opacity: ${esTitularIA ? '1' : '0.75'};">
+                <div style="font-size: 0.8em; color: var(--accent); font-weight: bold; margin-bottom: 2px;">${posStr}</div>
+                <div style="font-size: 0.6em; color: ${rolColor}; margin-bottom: 3px; font-weight:bold;">${rolLabel.toUpperCase()} · ${jugMin}min</div>
+                <div style="color: ${nameColor}; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size:0.85em;">${isRival ? '🔥 ' : ''}${jug.n}</div>
+                ${jug.a ? `<div style="font-size:0.6em; color:#888; margin-bottom:4px;">🎂 ${jug.a} años</div>` : ''}
                 <div style="font-size: 0.7em; background: rgba(0,0,0,0.5); padding: 4px; border-radius: 4px; margin-bottom: 5px;">OVR: <span style="color:#fff; font-weight:bold;">${jug.o || 70}</span></div>
                 <div style="font-size: 0.65em; color: #ccc;">${jugPPP}p | ${jugRPP}r | ${jugAPP}a</div>
                 <div style="font-size: 0.6em; color: #888;">${jugROP}ro | ${jugTAP}ta</div>
@@ -2954,6 +3174,10 @@ function updateUI() {
                 }
             }
         }
+        // Actualizar media del equipo en el header si existe el elemento
+        let uiTeamOvr = e('ui-team-ovr');
+        if (uiTeamOvr && p.teamData) uiTeamOvr.innerText = p.teamData.ovr;
+
     } catch(err) { 
         console.error("Error en updateUI:", err); 
     }

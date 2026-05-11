@@ -88,7 +88,6 @@
             <button id="btn-continuar" onclick="cargarPartida()" class="btn-main" style="display:none; padding: 15px; font-size: 1em; border-color: var(--success); color: var(--success);">💾 CONTINUAR PARTIDA</button>
         </div>
 
-        <!-- PANEL DE PREVISUALIZACIÓN DE BUILD -->
         <div id="build-preview" style="margin-top:20px; background:#0a0a0a; border:2px solid gold; border-radius:6px; padding:12px; text-align:left;">
             <div style="color:gold; font-size:0.7em; font-weight:bold; text-align:center; margin-bottom:10px; letter-spacing:1px;">🧬 PREVISUALIZACIÓN DE BUILD</div>
             <div id="build-preview-content" style="font-size:0.6em; line-height:1.9;"></div>
@@ -193,7 +192,7 @@
                 <span class="dorsal" id="ui-dorsal">#17</span>
                 <div>
                     <span id="ui-name" class="pixel-title">JUGADOR</span>
-                    <span class="club-name"><span id="ui-nat">🇪🇸</span> | <span id="ui-height">195</span>cm | <span id="ui-team">EQUIPO</span> | T.<span id="ui-season">1</span>/17 <br><span id="ui-rol" class="rol-badge">TITULAR</span></span>
+                    <span class="club-name"><span id="ui-nat">🇪🇸</span> | <span id="ui-height">195</span>cm | <span id="ui-team">EQUIPO</span> <span style="color:#888; font-size:0.85em;">(<span id="ui-team-ovr">--</span>)</span> | T.<span id="ui-season">1</span>/17 <br><span id="ui-rol" class="rol-badge">TITULAR</span></span>
                 </div>
             </div>
             <div class="economy-info">
@@ -307,6 +306,8 @@
 <script src="story.js"></script>
 <script src="comentarios.js"></script>
 <script src="sponsors.js"></script>
+<script src="rookie.js"></script>
+<script src="draft_system.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
